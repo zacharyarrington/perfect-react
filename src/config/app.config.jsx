@@ -13,7 +13,7 @@ const APP_CONFIG = {
   logo: <IconLayoutDashboard size={22} />,
 
   // 'dark' | 'light' | 'auto'  (auto follows the OS preference)
-  defaultTheme: 'auto',
+  defaultTheme: 'light',
 
   // When true, visitors can use the app without creating a user.
   // Guests get the `guestRole` from roles.config permissions.

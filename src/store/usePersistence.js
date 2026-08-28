@@ -27,6 +27,20 @@ export default function usePersistence() {
   const saveTimer = useRef(null)
   const restored = useRef(false)
 
+  const savePrefsNow = () => {
+    const s = useAppStore.getState()
+    const id = getActiveUserId()
+    if (id) {
+      saveUserPreferences(id, { theme: s.theme, sidebarCollapsed: s.sidebarCollapsed }).catch(() => {})
+    } else {
+      localforage.setItem(GUEST_STATE_KEY, {
+        theme: s.theme,
+        sidebarCollapsed: s.sidebarCollapsed,
+        panels: s.panels,
+      }).catch(() => {})
+    }
+  }
+
   // ── Restore session on mount ──────────────────────────────────────────────
   useEffect(() => {
     const restore = async () => {
@@ -63,24 +77,44 @@ export default function usePersistence() {
     restore()
   }, [])
 
-  // ── Debounced auto-save on any persisted change ───────────────────────────
+  // ── Theme / sidebar: save immediately ─────────────────────────────────────
+  // These change rarely (a click or keypress) and are cheap to write, so
+  // there's no reason to debounce them — doing so left a window where a
+  // quick refresh right after switching themes would lose the change and
+  // silently fall back to the default.
+  useEffect(() => {
+    if (!restored.current) return
+    savePrefsNow()
+  }, [theme, sidebarCollapsed])
+
+  // ── Panels: debounced auto-save ───────────────────────────────────────────
+  // Dragging/resizing fires many updates per second, so this one is worth
+  // debouncing. flush on unmount/navigation-away so an in-flight drag is
+  // never lost if the tab closes during the debounce window.
   useEffect(() => {
     if (!restored.current) return
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
       const s = useAppStore.getState()
       const id = getActiveUserId()
-      if (id) {
-        saveUserPreferences(id, { theme: s.theme, sidebarCollapsed: s.sidebarCollapsed }).catch(() => {})
-        saveUserLayout(id, s.panels).catch(() => {})
-      } else {
-        localforage.setItem(GUEST_STATE_KEY, {
-          theme: s.theme,
-          sidebarCollapsed: s.sidebarCollapsed,
-          panels: s.panels,
-        }).catch(() => {})
-      }
+      if (id) saveUserLayout(id, s.panels).catch(() => {})
+      else savePrefsNow() // guest state is one blob; keep panels in sync with it too
     }, SAVE_DEBOUNCE_MS)
     return () => clearTimeout(saveTimer.current)
-  }, [panels, theme, sidebarCollapsed])
+  }, [panels])
+
+  // Flush any pending panel-layout save immediately when the page is about
+  // to unload, so a drag right before closing the tab isn't silently lost.
+  useEffect(() => {
+    const flush = () => {
+      if (!saveTimer.current) return
+      clearTimeout(saveTimer.current)
+      const s = useAppStore.getState()
+      const id = getActiveUserId()
+      if (id) saveUserLayout(id, s.panels).catch(() => {})
+      else savePrefsNow()
+    }
+    window.addEventListener('pagehide', flush)
+    return () => window.removeEventListener('pagehide', flush)
+  }, [])
 }
