@@ -30,7 +30,7 @@ export default function FloatingPanel({
   // Keep pos in sync when the store changes outside of a drag (clamp or reset)
   useEffect(() => {
     setPos({ x: panel?.x ?? 12, y: panel?.y ?? 70 })
-  }, [panel?.x, panel?.y]) // eslint-disable-line
+  }, [panel?.x, panel?.y])
 
   if (!panel?.open) return null
 
