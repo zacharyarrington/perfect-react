@@ -16,7 +16,7 @@
 //   showInNav   set false to register the route without a sidebar link
 
 import { lazy } from 'react'
-import { IconHome, IconUsers, IconPalette } from '@tabler/icons-react'
+import { IconHome, IconUsers, IconPalette, IconChartBar, IconMap } from '@tabler/icons-react'
 
 const PAGES = [
   {
@@ -24,6 +24,20 @@ const PAGES = [
     title: 'Home',
     icon: <IconHome size={18} />,
     component: lazy(() => import('../pages/HomePage')),
+    showInNav: true,
+  },
+  {
+    path: '/dashboard',
+    title: 'Dashboard',
+    icon: <IconChartBar size={18} />,
+    component: lazy(() => import('../pages/DashboardPage')),
+    showInNav: true,
+  },
+  {
+    path: '/map',
+    title: 'Map',
+    icon: <IconMap size={18} />,
+    component: lazy(() => import('../pages/MapPage')),
     showInNav: true,
   },
   {

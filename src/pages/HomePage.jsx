@@ -4,6 +4,7 @@ import useAuth from '../auth/useAuth'
 import APP_CONFIG from '../config/app.config'
 import {
   IconRoute, IconAppWindow, IconShieldLock, IconPalette,
+  IconMap, IconChartBar, IconLayoutBoard,
 } from '@tabler/icons-react'
 
 const FEATURES = [
@@ -24,8 +25,23 @@ const FEATURES = [
   },
   {
     icon: <IconPalette size={22} />,
-    title: 'Design system',
-    desc: 'Dark/light glassmorphism theme driven by CSS variables. Buttons, forms, tables, badges, toasts, modals — see the UI Kit page.',
+    title: 'UI kit & design system',
+    desc: 'Dark/light glassmorphism theme driven by CSS variables. Modals, tabs, data tables, stat cards, progress, and more — see the UI Kit page.',
+  },
+  {
+    icon: <IconMap size={22} />,
+    title: 'Map module',
+    desc: 'Drop <MapView> on any page: GeoJSON layers, legend, basemaps, popups, and a Layers panel — powered by useMapStore.',
+  },
+  {
+    icon: <IconChartBar size={22} />,
+    title: 'Charts',
+    desc: 'Themed bar, line, and donut charts with a colorblind-validated palette, tooltips, and legends. See the Dashboard page.',
+  },
+  {
+    icon: <IconLayoutBoard size={22} />,
+    title: 'Shareable layouts',
+    desc: 'Save panel arrangements as named templates and share them as .layout.json files — open the Layouts panel to try it.',
   },
 ]
 

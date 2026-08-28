@@ -1,0 +1,12 @@
+// UI component library barrel — import everything from one place:
+//   import { Modal, Tabs, DataTable, StatCard } from '../components/ui'
+
+export { default as Modal, ConfirmDialog } from './Modal'
+export { default as Tabs } from './Tabs'
+export { default as Collapsible } from './Collapsible'
+export { default as ProgressBar } from './ProgressBar'
+export { default as SearchInput } from './SearchInput'
+export { default as DataTable } from './DataTable'
+export { default as StatCard } from './StatCard'
+export { default as PageHeader } from './PageHeader'
+export { default as EmptyState } from './EmptyState'

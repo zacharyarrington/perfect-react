@@ -23,9 +23,25 @@
 //               programmatically, e.g. the keybindings panel via "?")
 
 import { lazy } from 'react'
-import { IconNotes, IconSettings, IconKeyboard } from '@tabler/icons-react'
+import { IconNotes, IconSettings, IconKeyboard, IconStack2, IconLayoutBoard } from '@tabler/icons-react'
 
 const PANELS = [
+  {
+    key: 'layers',
+    title: 'Map Layers',
+    icon: <IconStack2 size={18} />,
+    component: lazy(() => import('../map/LayersPanel')),
+    defaults: { open: false, x: 20, y: 20, w: 300, h: 440 },
+    showToggle: true,
+  },
+  {
+    key: 'layouts',
+    title: 'Layouts',
+    icon: <IconLayoutBoard size={18} />,
+    component: lazy(() => import('../layouts/LayoutsPanel')),
+    defaults: { open: false, x: 160, y: 60, w: 320, h: 420 },
+    showToggle: true,
+  },
   {
     key: 'notes',
     title: 'Notes',

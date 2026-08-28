@@ -1,22 +1,25 @@
 # Admin Shell
 
-A reusable React admin-dashboard template built around a **floating window system**, a **registry-driven page/panel architecture**, and **local user/role/permission management**. Clone it, rename it, and start building your tool — the shell (navigation, windows, theming, auth, persistence) is already done.
+A reusable React admin-dashboard template built around a **floating window system**, a **registry-driven page/panel architecture**, and **local user/role/permission management** — plus opt-in modules: an embeddable **map component** (GeoJSON layers, legend, basemaps), **themed charts**, **shareable layout templates**, and a **UI component library**. Clone it, rename it, and start building your tool.
 
-Extracted from the ReadyMapGo UI system: the glassmorphism design language, draggable/resizable panels, top-bar menu, and profile flow — with all GIS functionality removed.
+Extracted from the ReadyMapGo UI system: the glassmorphism design language, draggable/resizable panels, top-bar menu, and profile flow.
 
 ## Stack
 
 - **React 19 + Vite** — SPA, no server required
 - **react-router-dom** — client-side routing
-- **zustand** — app state (panels, theme, session)
+- **zustand** — app state (panels, theme, session, map layers)
 - **react-draggable / react-resizable** — floating windows
 - **localforage** — IndexedDB persistence (users, layouts, panel content)
+- **mapbox-gl** — map module (lazy-loaded; needs a free token)
+- **recharts** — chart components (lazy-loaded)
 - **@tabler/icons-react** — icons
 
 ```bash
 npm install
-npm run dev       # local dev
-npm run build     # production build → dist/
+cp .env.example .env   # add VITE_MAPBOX_TOKEN for the map module (optional)
+npm run dev            # local dev
+npm run build          # production build → dist/
 npm run lint
 ```
 
@@ -38,7 +41,11 @@ src/
     panels.config.jsx   ← floating panel registry
     roles.config.js     ← roles & permissions
   auth/                 ← userManager, useAuth, RequirePermission, LoginDialog
-  components/           ← TopBar, Sidebar, UserBadge, Toast
+  components/
+    ui/                 ← Modal, Tabs, DataTable, StatCard, ProgressBar, … (barrel: components/ui)
+    charts/             ← BarChart, LineChart, DonutChart (barrel: components/charts)
+  map/                  ← MapView, useMapStore, LayersPanel, Legend, BasemapMenu
+  layouts/              ← layout template manager + LayoutsPanel
   panels/               ← FloatingPanel + panel components
   pages/                ← page components
   store/                ← useAppStore (zustand), usePersistence
@@ -109,6 +116,40 @@ if (hasPermission('content.edit')) { … }
 
 The **Users** page (admin-only) manages accounts and role assignment; it refuses to demote the last admin or delete yourself.
 
+## How to: use the map component
+
+Set `VITE_MAPBOX_TOKEN` in `.env` (free at account.mapbox.com). Without it, map components render a setup card instead of breaking.
+
+```jsx
+import MapView from '../map/MapView'
+import useMapStore from '../map/useMapStore'
+
+// Full-bleed (see MapPage.jsx) or any sized container:
+<div style={{ height: 400, borderRadius: 12, overflow: 'hidden' }}>
+  <MapView />            {/* props: showLegend, showBasemapPicker, showControls, showCoords, interactive */}
+</div>
+
+// Layers from anywhere — every mounted MapView stays in sync:
+useMapStore.getState().addLayer({ name: 'Sites', type: 'point', geojson, style: { color: '#00d4c8' } })
+```
+
+What's included: GeoJSON layers (simple/categorical/graduated symbology via `LayerRenderer.js`), hover popups, click-to-select highlighting, a collapsible legend, six Mapbox basemaps, and the **Map Layers** floating panel (import GeoJSON files, visibility, color, opacity, labels, reorder, zoom-to). Heavier GIS features (drawing, measuring, shapefile/CSV import, spatial ops) were left out deliberately — the original ReadyMapGo implementations are recoverable from the baseline commit if you need them.
+
+## How to: layout templates (shareable workspaces)
+
+Open the **Layouts** panel: arrange your panels, save the workspace under a name, and apply it any time. **Export** writes a `.layout.json` file you can send to anyone using the app — they **Import** it from the same panel. Templates capture panel positions/sizes/open-state, sidebar state, and theme. Built-ins (`Default`, `Minimal`) live in `src/layouts/layoutTemplates.js` — add your own presets there.
+
+## How to: charts
+
+```jsx
+import { BarChart, LineChart, DonutChart } from '../components/charts'
+
+<BarChart data={rows} xKey="month" stacked
+  series={[{ key: 'signups', label: 'Signups' }, { key: 'churn', label: 'Churn' }]} />
+```
+
+Tooltips, legends (auto for ≥2 series), and theming are built in. Series colors come from `--chart-1…8` — a colorblind-validated palette with separate light/dark steps. The slot *order* is the accessibility mechanism: assign in order, don't shuffle, and prefer ≤4 series (DonutChart folds extras into "Other" automatically).
+
 ## Built-ins
 
 - **Theme** — dark / light / auto (follows OS), cycled from the top bar or `T`. All colors are CSS variables in `styles/index.css`; retheme by editing `:root` / `html[data-theme="light"]`.
@@ -116,7 +157,9 @@ The **Users** page (admin-only) manages accounts and role assignment; it refuses
 - **Keyboard shortcuts** — `Cmd/Ctrl+1…9` panels, `Cmd/Ctrl+\`` toggle all, `Esc` close all, `Cmd/Ctrl+B` sidebar, `T` theme, `?` shortcut list.
 - **Toasts** — `useAppStore.getState().addToast({ type: 'success'|'error'|'info'|'warning', message })`.
 - **Persistence** — theme, sidebar state, and panel layout auto-save per user (guests get a shared slot) and restore on load.
-- **UI Kit page** — a living gallery of every built-in control (buttons, forms, badges, tables, toasts, permission gates).
+- **UI component library** — `import { Modal, ConfirmDialog, Tabs, Collapsible, ProgressBar, SearchInput, DataTable, StatCard, PageHeader, EmptyState } from '../components/ui'`. DataTable is sortable/searchable/paginated.
+- **UI Kit page** — a living gallery of everything above, organized in tabs (Basics / Components / Charts).
+- **Dashboard page** — a full example wiring stat cards, charts, and a data table together.
 
 ## Redeploy checklist for a new tool
 
