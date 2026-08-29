@@ -21,17 +21,40 @@ import { WIDGET_TYPES_BY_ID, DEFAULT_WIDGET_LAYOUTS } from '../widgets/widgets.c
 
 const genId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 
-function makeWidget({ type, title, layout, binding, config }) {
+const GRID_COLS = 12
+
+// react-grid-layout does arithmetic (x + w, y comparisons, etc.) directly on
+// every layout item's x/y — an item with x/y left undefined turns that math
+// into NaN, and its collision/compaction pass can then spin forever trying
+// to resolve a position that never satisfies its own comparisons (reproduced:
+// adding a 2nd widget with no explicit y hung the tab indefinitely, in both
+// react-grid-layout 1.5.4 and 2.x). So every widget MUST get real x/y numbers
+// here, before it ever reaches the grid — never rely on a registry default or
+// a partial caller-supplied layout to provide them.
+function placeNewWidget(existingWidgets) {
+  if (existingWidgets.length === 0) return { x: 0, y: 0 }
+  // Simple, cheap placement: stack below the lowest existing widget's bottom
+  // edge. Good enough for "never collide, never NaN"; a real bin-packing
+  // algorithm isn't needed for a widget picker that adds one at a time.
+  const maxBottom = Math.max(...existingWidgets.map((wi) => (wi.layout.y ?? 0) + (wi.layout.h ?? 0)))
+  return { x: 0, y: maxBottom }
+}
+
+function makeWidget({ type, title, layout, binding, config }, existingWidgets = []) {
   const widgetType = WIDGET_TYPES_BY_ID[type]
   if (!widgetType) throw new Error(`Unknown widget type "${type}"`)
   const id = genId('w')
+  const base = { ...DEFAULT_WIDGET_LAYOUTS[type], ...(layout || {}) }
+  const placed = layout?.x != null && layout?.y != null
+    ? { x: layout.x, y: layout.y }
+    : placeNewWidget(existingWidgets)
   return {
     title: title || '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     // Computed fields re-applied after the spread so they can never be
     // silently overwritten by a caller-provided value of the same key.
-    layout: { ...DEFAULT_WIDGET_LAYOUTS[type], ...(layout || {}) },
+    layout: { w: Math.min(base.w, GRID_COLS), h: base.h, minW: base.minW, minH: base.minH, ...placed },
     binding: { ...widgetType.defaultBinding, ...(binding || {}) },
     config: { ...widgetType.defaultConfig, ...(config || {}) },
     type,
@@ -128,7 +151,8 @@ const useDashboardStore = create(
 
     // ── Widgets (nested under their dashboard) ────────────────
     addWidget: (dashboardId, widgetData) => {
-      const widget = makeWidget(widgetData)
+      const dashboard = get().dashboards.find((d) => d.id === dashboardId)
+      const widget = makeWidget(widgetData, dashboard?.widgets || [])
       set((s) => ({
         dashboards: s.dashboards.map((d) =>
           d.id === dashboardId ? { ...d, widgets: [...d.widgets, widget], updatedAt: new Date().toISOString() } : d

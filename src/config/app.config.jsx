@@ -5,7 +5,7 @@ import { IconLayoutDashboard } from '@tabler/icons-react'
 
 const APP_CONFIG = {
   // Shown in the top bar, login dialog, and browser tab
-  name: 'Admin Shell',
+  name: 'Flat Circle',
   tagline: 'Reusable admin dashboard template',
   version: '0.1.0',
 

@@ -28,10 +28,17 @@ const PAGES = [
   },
   {
     path: '/dashboard',
-    title: 'Dashboard',
+    title: 'Dashboards',
     icon: <IconChartBar size={18} />,
     component: lazy(() => import('../pages/DashboardPage')),
     showInNav: true,
+  },
+  {
+    path: '/dashboard/:dashboardId',
+    title: 'Dashboards',
+    icon: <IconChartBar size={18} />,
+    component: lazy(() => import('../pages/DashboardPage')),
+    showInNav: false,
   },
   {
     path: '/map',

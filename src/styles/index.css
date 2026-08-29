@@ -2523,6 +2523,209 @@ html[data-theme="light"] {
 .table-bulk-bar span { font-weight: 600; flex-shrink: 0; }
 
 /* ============================================================
+   Dashboards & Widgets
+   ============================================================ */
+
+/* ── Dashboard shell ── */
+.dashboard-shell {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+.dashboard-toolbar .dashboard-tabs { flex: 1; min-width: 0; }
+
+/* ── Dashboard tabs ── */
+.dashboard-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dashboard-tabs::-webkit-scrollbar { display: none; }
+
+.dashboard-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 6px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  flex-shrink: 0;
+  max-width: 220px;
+  transition: background var(--duration-fast);
+  color: var(--text-secondary);
+}
+.dashboard-tab:hover { background: var(--bg-hover); }
+.dashboard-tab.active {
+  background: rgba(0,212,200,0.10);
+  color: var(--accent-primary);
+}
+
+.dashboard-tab-pin {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  opacity: 0.5;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dashboard-tab-pin:hover { opacity: 1; }
+
+.dashboard-tab-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.dashboard-tab-rename-input {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  background: var(--bg-elevated);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 1px 4px;
+  min-width: 0;
+  width: 120px;
+}
+
+.dashboard-tab-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--duration-fast);
+  flex-shrink: 0;
+}
+.dashboard-tab:hover .dashboard-tab-actions,
+.dashboard-tab.active .dashboard-tab-actions { opacity: 1; }
+
+.dashboard-tab-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+.dashboard-tab-add:hover {
+  color: var(--accent-primary);
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+/* ── Widget canvas (react-grid-layout) ── */
+.widget-canvas {
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-4);
+}
+
+.widget-canvas-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* react-grid-layout's own placeholder defaults to a hard red block */
+.react-grid-item.react-grid-placeholder {
+  background: var(--accent-primary) !important;
+  opacity: 0.15 !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* ── Widget frame (chrome around every widget) ── */
+.widget-frame {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.widget-frame-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(255,255,255,0.02);
+  cursor: move;
+  flex-shrink: 0;
+}
+
+.widget-drag-grip { color: var(--text-muted); flex-shrink: 0; }
+.widget-frame-icon { display: flex; color: var(--text-secondary); flex-shrink: 0; }
+
+.widget-frame-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget-frame-actions { position: relative; flex-shrink: 0; }
+
+.widget-frame-menu {
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 160px;
+}
+
+.widget-frame-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-3);
+}
+
+.widget-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.widget-text { font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.6; }
+.widget-text p { margin-bottom: 4px; }
+.widget-text-empty { color: var(--text-muted); font-style: italic; }
+
+/* ============================================================
    Mobile responsive — kept last so it wins the cascade over the
    unconditional module rules above (.stat-grid, .dashboard-grid, etc.)
    ============================================================ */
