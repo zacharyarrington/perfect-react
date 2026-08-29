@@ -1949,7 +1949,14 @@ html[data-theme="light"] {
   border-radius: inherit;
   overflow: hidden;
 }
-.map-canvas {
+/* Mapbox GL mounts its map directly onto this element and stamps its own
+   .mapboxgl-map class on it (same node, not a child) — that class's own
+   `position: relative` rule in mapbox-gl.css has equal specificity to
+   `.map-canvas` and loads after this stylesheet (mapbox-gl.css is imported
+   from MapView.jsx, evaluated after App.jsx's styles/index.css), so source
+   order alone would let it win and collapse this element to 0 height. The
+   compound selector below out-specifies it regardless of import order. */
+.map-canvas.map-canvas {
   position: absolute;
   inset: 0;
 }
