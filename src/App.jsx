@@ -18,9 +18,14 @@ import CommandPalette from './command/CommandPalette'
 import useAppStore from './store/useAppStore'
 import usePersistence from './store/usePersistence'
 import { isFirstLoginPrompt, getActiveUserId } from './auth/userManager'
+import { initDashboardStorage } from './dashboards/dashboardStorage'
 
 // Panel keys that get Cmd/Ctrl+1…9 shortcuts, in registry order
 const SHORTCUT_PANEL_KEYS = PANELS.filter((p) => p.showToggle).slice(0, 9).map((p) => p.key)
+
+// Module-level guard so StrictMode's double effect-run in dev can't
+// double-seed a default dashboard.
+let dashboardStorageInitRan = false
 
 export default function App() {
   usePersistence()
@@ -39,6 +44,13 @@ export default function App() {
     const handler = (e) => setSystemDark(e.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  // Load dashboards (or seed a default one) and wire up auto-save
+  useEffect(() => {
+    if (dashboardStorageInitRan) return
+    dashboardStorageInitRan = true
+    initDashboardStorage()
   }, [])
 
   // Apply theme attribute to <html> so CSS variables cascade everywhere
