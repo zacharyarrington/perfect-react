@@ -7,20 +7,17 @@
 import { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import useDashboardStore from './useDashboardStore'
+import useAppStore from '../store/useAppStore'
 import DashboardTabs from './DashboardTabs'
 import DashboardCanvas from './DashboardCanvas'
 import { PageHeader } from '../components/ui'
 import { IconPlus } from '@tabler/icons-react'
 
-// TEMPORARY (stage 2 only): the real widget picker panel lands in stage 3.
-// Until then this button exercises addWidget directly so drag/resize/
-// persistence can be verified without waiting on the picker UI.
-const SAMPLE_WIDGET_TYPES = ['stat', 'chart', 'table', 'text']
-
 export default function DashboardShell() {
   const { dashboardId } = useParams()
   const navigate = useNavigate()
-  const { dashboards, loaded, activeDashboardId, setActiveDashboard, addWidget } = useDashboardStore()
+  const { dashboards, loaded, activeDashboardId, setActiveDashboard } = useDashboardStore()
+  const togglePanel = useAppStore((s) => s.togglePanel)
 
   const dashboard = dashboardId
     ? dashboards.find((d) => d.id === dashboardId)
@@ -44,16 +41,11 @@ export default function DashboardShell() {
     )
   }
 
-  const addSampleWidget = () => {
-    const type = SAMPLE_WIDGET_TYPES[dashboard.widgets.length % SAMPLE_WIDGET_TYPES.length]
-    addWidget(dashboard.id, { type, title: `${type} widget ${dashboard.widgets.length + 1}` })
-  }
-
   return (
     <div className="dashboard-shell">
       <div className="dashboard-toolbar">
         <DashboardTabs activeDashboardId={dashboard.id} />
-        <button className="btn btn-ghost btn-sm" onClick={addSampleWidget}>
+        <button className="btn btn-ghost btn-sm" onClick={() => togglePanel('widgets')}>
           <IconPlus size={14} /> Add widget
         </button>
       </div>

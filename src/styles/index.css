@@ -2725,6 +2725,72 @@ html[data-theme="light"] {
 .widget-text p { margin-bottom: 4px; }
 .widget-text-empty { color: var(--text-muted); font-style: italic; }
 
+/* ── Widget picker panel ── */
+.widget-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.widget-picker-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--duration-fast);
+}
+.widget-picker-item:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+.widget-picker-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.widget-picker-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  background: rgba(0,212,200,0.10);
+  border-radius: var(--radius-sm);
+  color: var(--accent-primary);
+}
+
+.widget-picker-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.widget-picker-item-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.widget-picker-item-desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Empty-state "Add Widget" button inside the canvas */
+.widget-canvas-empty .empty-state {
+  gap: var(--space-4);
+}
+
 /* ============================================================
    Mobile responsive — kept last so it wins the cascade over the
    unconditional module rules above (.stat-grid, .dashboard-grid, etc.)

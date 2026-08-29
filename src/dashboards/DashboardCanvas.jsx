@@ -30,9 +30,11 @@ import { Responsive, WidthProvider } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import useDashboardStore from './useDashboardStore'
+import useAppStore from '../store/useAppStore'
 import WidgetFrame from './WidgetFrame'
 import WidgetRenderer from '../widgets/WidgetRenderer'
 import { WIDGET_TYPES_BY_ID } from '../widgets/widgets.config'
+import { IconApps } from '@tabler/icons-react'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
@@ -51,6 +53,7 @@ const COLS = { lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }
 
 export default function DashboardCanvas({ dashboard, onConfigureWidget }) {
   const { applyLayout, removeWidget, duplicateWidget } = useDashboardStore()
+  const togglePanel = useAppStore((s) => s.togglePanel)
   // onDragStop/onResizeStop receive (layout, oldItem, newItem, placeholder,
   // event, element) — no breakpoint — so the active one is tracked via
   // onBreakpointChange and read through a ref (not state) so a drag that
@@ -72,7 +75,10 @@ export default function DashboardCanvas({ dashboard, onConfigureWidget }) {
       <div className="widget-canvas widget-canvas-empty">
         <div className="empty-state">
           <div className="empty-state-title">This dashboard is empty</div>
-          <div className="empty-state-desc">Open the widget picker to add your first widget.</div>
+          <div className="empty-state-desc">Add a widget to get started.</div>
+          <button className="btn btn-primary btn-sm" onClick={() => togglePanel('widgets')}>
+            <IconApps size={14} /> Add Widget
+          </button>
         </div>
       </div>
     )
