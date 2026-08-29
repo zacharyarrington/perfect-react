@@ -37,11 +37,15 @@ const WIDGET_TYPES = [
       icon: null,
       invertDelta: false,
     },
+    // Defaults to a real demo dataset so a freshly added widget shows
+    // something immediately instead of an empty "pick a data source" state
+    // — users can always rebind it once the config form (a later stage)
+    // exists.
     defaultBinding: {
-      sourceId: null,
-      valueField: null,
+      sourceId: 'mock:weekly_signups',
+      valueField: 'signups',
       aggregate: 'sum',       // sum | avg | count | min | max | last | first
-      compareField: null,
+      compareField: 'churn',
       refreshInterval: null,
     },
     configSchema: [
@@ -73,12 +77,16 @@ const WIDGET_TYPES = [
       variant: 'bar',    // bar | line | donut
       stacked: false,
     },
+    // See stat's defaultBinding comment — same reasoning. valueField/
+    // nameField are left null since they only apply once variant is
+    // switched to 'donut' (the config form's visibleWhen guards them, and
+    // widgets.config.jsx's own defaultConfig.variant is 'bar').
     defaultBinding: {
-      sourceId: null,
-      xField: null,
-      seriesFields: [],
-      valueField: null,   // donut only
-      nameField: null,    // donut only
+      sourceId: 'mock:daily_traffic',
+      xField: 'day',
+      seriesFields: ['visits', 'sessions'],
+      valueField: null,    // donut only
+      nameField: null,     // donut only
       refreshInterval: null,
     },
     configSchema: [
@@ -121,8 +129,9 @@ const WIDGET_TYPES = [
     defaultConfig: {
       searchable: true,
     },
+    // See stat's defaultBinding comment — same reasoning.
     defaultBinding: {
-      sourceId: null,
+      sourceId: 'mock:recent_activity',
       columns: [],   // [] = show every field
       refreshInterval: null,
     },
