@@ -9,10 +9,13 @@ import APP_CONFIG from '../config/app.config'
 import PAGES from '../config/pages.config'
 import PANELS from '../config/panels.config'
 import UserBadge from './UserBadge'
+import NotificationBell from '../notifications/NotificationBell'
 import {
-  IconSun, IconMoon, IconSunMoon, IconMenu2, IconX,
+  IconSun, IconMoon, IconSunMoon, IconMenu2, IconX, IconSearch,
   IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand,
 } from '@tabler/icons-react'
+
+const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform || navigator.userAgent)
 
 export default function TopBar() {
   const {
@@ -58,7 +61,18 @@ export default function TopBar() {
           <span className="topbar-page-title">{currentPage?.title || ''}</span>
         </div>
 
-        {/* Right side: panel toggles, theme, user */}
+        {/* Command palette trigger */}
+        <button
+          className="cmdk-trigger"
+          onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: isMac, ctrlKey: !isMac }))}
+          data-tooltip="Search (⌘K)"
+        >
+          <IconSearch size={14} />
+          <span>Search…</span>
+          <kbd className="kbd">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
+        </button>
+
+        {/* Right side: panel toggles, theme, notifications, user */}
         <div className="topbar-right">
           {visiblePanels.map((p) => (
             <button
@@ -82,6 +96,7 @@ export default function TopBar() {
             {theme === 'light' ? <IconSun size={18} /> : theme === 'dark' ? <IconMoon size={18} /> : <IconSunMoon size={18} />}
           </button>
 
+          <NotificationBell />
           <UserBadge />
         </div>
 
@@ -125,6 +140,7 @@ export default function TopBar() {
               {theme === 'light' ? <IconSun size={16} /> : theme === 'dark' ? <IconMoon size={16} /> : <IconSunMoon size={16} />}
               <span>Theme</span>
             </button>
+            <NotificationBell />
             <UserBadge />
           </div>
         </div>

@@ -9,6 +9,8 @@ import {
   ProgressBar, SearchInput, DataTable, StatCard, EmptyState,
 } from '../components/ui'
 import { BarChart, LineChart, DonutChart } from '../components/charts'
+import { useForm, Field, validators } from '../components/forms'
+import { pushNotification } from '../notifications/notificationStore'
 import { IconUsers, IconInbox, IconRocket } from '@tabler/icons-react'
 
 // ── Demo data ────────────────────────────────────────────────────────────────
@@ -220,6 +222,51 @@ function ComponentsTab() {
   )
 }
 
+// ── Tab: forms ───────────────────────────────────────────────────────────────
+
+function FormsTab() {
+  const addToast = useAppStore((s) => s.addToast)
+
+  const form = useForm({
+    initialValues: { name: '', email: '', role: 'viewer', bio: '', notify: true },
+    validate: (v) => ({
+      name: validators.compose(validators.required(), validators.maxLength(40))(v.name),
+      email: validators.compose(validators.required(), validators.email())(v.email),
+    }),
+    onSubmit: async (values) => {
+      await new Promise((r) => setTimeout(r, 500)) // pretend to hit an API
+      pushNotification({ title: 'Form submitted', body: `${values.name} (${values.role})`, type: 'success' })
+      addToast({ type: 'success', message: 'Submitted — check the notification bell' })
+      form.reset()
+    },
+  })
+
+  return (
+    <div className="card" style={{ maxWidth: 460 }}>
+      <div className="card-title" style={{ marginBottom: 4 }}>useForm + Field</div>
+      <div className="card-desc" style={{ marginBottom: 12 }}>
+        Validation runs on every change but errors only show once a field is touched or you submit.
+        This exact pattern powers the "Add User" form on the Users page.
+      </div>
+      <form onSubmit={form.handleSubmit}>
+        <Field.Text label="Name" required {...form.field('name')} placeholder="Jane Doe" />
+        <Field.Text label="Email" required type="email" {...form.field('email')} placeholder="jane@example.com" />
+        <Field.Select
+          label="Role"
+          {...form.field('role')}
+          options={[{ value: 'admin', label: 'Administrator' }, { value: 'editor', label: 'Editor' }, { value: 'viewer', label: 'Viewer' }]}
+        />
+        <Field.Textarea label="Bio" hint="Optional" rows={3} {...form.field('bio')} placeholder="A short bio…" />
+        <Field.Checkbox label="Notify by email" {...form.field('notify')} />
+        {form.submitError && <div className="field-error" style={{ marginBottom: 12 }}>{form.submitError}</div>}
+        <button type="submit" className="btn btn-primary" disabled={form.submitting}>
+          {form.submitting ? 'Submitting…' : 'Submit'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
 // ── Tab: charts ──────────────────────────────────────────────────────────────
 
 function ChartsTab() {
@@ -260,6 +307,7 @@ export default function ExamplePage() {
         tabs={[
           { key: 'basics', label: 'Basics', content: <BasicsTab /> },
           { key: 'components', label: 'Components', content: <ComponentsTab /> },
+          { key: 'forms', label: 'Forms', content: <FormsTab /> },
           { key: 'charts', label: 'Charts', content: <ChartsTab /> },
         ]}
       />

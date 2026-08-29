@@ -13,6 +13,7 @@ import PanelHost from './panels/PanelHost'
 import LoginDialog from './auth/LoginDialog'
 import RequirePermission from './auth/RequirePermission'
 import NotFoundPage from './pages/NotFoundPage'
+import CommandPalette from './command/CommandPalette'
 
 import useAppStore from './store/useAppStore'
 import usePersistence from './store/usePersistence'
@@ -168,6 +169,7 @@ export default function App() {
         </main>
       </div>
       <Toast />
+      <CommandPalette />
       {showLoginDialog && <LoginDialog />}
     </div>
   )

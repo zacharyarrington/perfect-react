@@ -19,6 +19,21 @@ export const AVATAR_COLORS = [
   '#ef4444', '#22c55e', '#ec4899', '#f97316',
 ]
 
+// ── Concurrency guard ────────────────────────────────────────────────────────
+// Every mutator below does read-entire-blob -> modify -> write-entire-blob.
+// Two mutators racing (e.g. Promise.all over a bulk delete) would otherwise
+// both read the same snapshot and the second write would silently undo the
+// first. withUsersLock serializes access by chaining onto the previous call's
+// promise, so each mutator's read always sees the prior mutator's write.
+let usersLock = Promise.resolve()
+function withUsersLock(fn) {
+  const result = usersLock.then(fn)
+  // Swallow errors for chaining purposes only — callers still get the
+  // rejection via `result`, which is what's actually returned/awaited.
+  usersLock = result.catch(() => {})
+  return result
+}
+
 // ── CRUD ─────────────────────────────────────────────────────────────────────
 
 export async function listUsers() {
@@ -28,65 +43,75 @@ export async function listUsers() {
 
 export async function createUser({ username, color, role }) {
   if (!username?.trim()) throw new Error('Username is required')
-  const existing = await listUsers()
-  if (existing.some((u) => u.username.toLowerCase() === username.trim().toLowerCase())) {
-    throw new Error('That username is already taken')
-  }
+  return withUsersLock(async () => {
+    const data = await localforage.getItem(USERS_KEY) || {}
+    const existing = Object.values(data)
+    if (existing.some((u) => u.username.toLowerCase() === username.trim().toLowerCase())) {
+      throw new Error('That username is already taken')
+    }
 
-  const id = `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
-  const user = {
-    id,
-    username: username.trim(),
-    color: color || AVATAR_COLORS[0],
-    // The very first user becomes admin so someone can manage the rest.
-    role: existing.length === 0 ? 'admin' : (role || APP_CONFIG.defaultRole),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    preferences: { theme: null, sidebarCollapsed: null },
-    layout: null,   // panel layout snapshot
-  }
-  const data = await localforage.getItem(USERS_KEY) || {}
-  data[id] = user
-  await localforage.setItem(USERS_KEY, data)
-  return user
+    const id = `user_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+    const user = {
+      id,
+      username: username.trim(),
+      color: color || AVATAR_COLORS[0],
+      // The very first user becomes admin so someone can manage the rest.
+      role: existing.length === 0 ? 'admin' : (role || APP_CONFIG.defaultRole),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      preferences: { theme: null, sidebarCollapsed: null },
+      layout: null,   // panel layout snapshot
+    }
+    data[id] = user
+    await localforage.setItem(USERS_KEY, data)
+    return user
+  })
 }
 
 export async function updateUser(id, updates) {
-  const data = await localforage.getItem(USERS_KEY) || {}
-  if (!data[id]) throw new Error('User not found')
-  if (updates.role && !ROLES[updates.role]) throw new Error(`Unknown role "${updates.role}"`)
-  data[id] = { ...data[id], ...updates, updatedAt: new Date().toISOString() }
-  await localforage.setItem(USERS_KEY, data)
-  return data[id]
+  return withUsersLock(async () => {
+    const data = await localforage.getItem(USERS_KEY) || {}
+    if (!data[id]) throw new Error('User not found')
+    if (updates.role && !ROLES[updates.role]) throw new Error(`Unknown role "${updates.role}"`)
+    data[id] = { ...data[id], ...updates, updatedAt: new Date().toISOString() }
+    await localforage.setItem(USERS_KEY, data)
+    return data[id]
+  })
 }
 
 export async function deleteUser(id) {
-  const data = await localforage.getItem(USERS_KEY) || {}
-  delete data[id]
-  await localforage.setItem(USERS_KEY, data)
-  if (getActiveUserId() === id) clearActiveUserId()
+  return withUsersLock(async () => {
+    const data = await localforage.getItem(USERS_KEY) || {}
+    delete data[id]
+    await localforage.setItem(USERS_KEY, data)
+    if (getActiveUserId() === id) clearActiveUserId()
+  })
 }
 
 // ── Preferences & layout ─────────────────────────────────────────────────────
 
 export async function saveUserPreferences(id, preferences) {
-  const data = await localforage.getItem(USERS_KEY) || {}
-  if (!data[id]) return
-  data[id] = {
-    ...data[id],
-    preferences: { ...(data[id].preferences || {}), ...preferences },
-    updatedAt: new Date().toISOString(),
-  }
-  await localforage.setItem(USERS_KEY, data)
-  return data[id]
+  return withUsersLock(async () => {
+    const data = await localforage.getItem(USERS_KEY) || {}
+    if (!data[id]) return
+    data[id] = {
+      ...data[id],
+      preferences: { ...(data[id].preferences || {}), ...preferences },
+      updatedAt: new Date().toISOString(),
+    }
+    await localforage.setItem(USERS_KEY, data)
+    return data[id]
+  })
 }
 
 export async function saveUserLayout(id, panels) {
-  const data = await localforage.getItem(USERS_KEY) || {}
-  if (!data[id]) return
-  data[id] = { ...data[id], layout: { panels }, updatedAt: new Date().toISOString() }
-  await localforage.setItem(USERS_KEY, data)
-  return data[id]
+  return withUsersLock(async () => {
+    const data = await localforage.getItem(USERS_KEY) || {}
+    if (!data[id]) return
+    data[id] = { ...data[id], layout: { panels }, updatedAt: new Date().toISOString() }
+    await localforage.setItem(USERS_KEY, data)
+    return data[id]
+  })
 }
 
 // ── Active user (localStorage for sync access) ───────────────────────────────

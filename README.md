@@ -46,6 +46,9 @@ src/
     charts/             ← BarChart, LineChart, DonutChart (barrel: components/charts)
   map/                  ← MapView, useMapStore, LayersPanel, Legend, BasemapMenu
   layouts/              ← layout template manager + LayoutsPanel
+  command/              ← command palette (Cmd/Ctrl+K) + its command registry
+  notifications/        ← persistent notification store + NotificationBell
+  components/forms/     ← useForm, Field, validators (barrel: components/forms)
   panels/               ← FloatingPanel + panel components
   pages/                ← page components
   store/                ← useAppStore (zustand), usePersistence
@@ -150,16 +153,76 @@ import { BarChart, LineChart, DonutChart } from '../components/charts'
 
 Tooltips, legends (auto for ≥2 series), and theming are built in. Series colors come from `--chart-1…8` — a colorblind-validated palette with separate light/dark steps. The slot *order* is the accessibility mechanism: assign in order, don't shuffle, and prefer ≤4 series (DonutChart folds extras into "Other" automatically).
 
+## How to: forms & validation
+
+```jsx
+import { useForm, Field, validators } from '../components/forms'
+
+const form = useForm({
+  initialValues: { name: '', email: '' },
+  validate: (v) => ({
+    name:  validators.required()(v.name),
+    email: validators.compose(validators.required(), validators.email())(v.email),
+  }),
+  onSubmit: async (values) => { await api.save(values) },
+})
+
+<form onSubmit={form.handleSubmit}>
+  <Field.Text label="Name" required {...form.field('name')} />
+  <Field.Text label="Email" required type="email" {...form.field('email')} />
+  <button type="submit" disabled={form.submitting}>Save</button>
+</form>
+```
+
+`Field` also has `.Select`, `.Textarea`, `.Checkbox`, and `.Color`. Errors only show once a field is touched or the form is submitted — see the Users page's "Add User" form or the UI Kit's Forms tab for full examples. `validators` composes: `required`, `minLength`, `maxLength`, `pattern`, `email`, `oneOf`, and `compose(...)` to chain them.
+
+## How to: command palette
+
+`Cmd/Ctrl+K` (or the search box in the top bar) opens a fuzzy-searchable menu over every page, every panel, and a handful of built-in actions (theme, sidebar, sign out) — all pulled live from the same registries that drive the sidebar. To add your own action (e.g. a page-specific "Export this report"), call `registerCommand` from `src/command/commandRegistry.jsx` when your page mounts, and unregister it on unmount (the function returns an unsubscribe).
+
+## How to: notifications
+
+Distinct from toasts (`addToast`, which disappear in 4s): notifications persist in the bell dropdown with read/unread state until dismissed, and survive a refresh.
+
+```js
+import { pushNotification } from '../notifications/notificationStore'
+pushNotification({ title: 'Export finished', body: 'report.csv is ready', type: 'success' })
+```
+
+## How to: data tables — selection, bulk actions, CSV export
+
+```jsx
+<DataTable
+  columns={[
+    { key: 'name', label: 'Name', sortable: true },
+    { key: 'note', label: 'Note', priority: 'low' },  // hidden on phone widths
+  ]}
+  rows={rows}
+  searchable
+  selectable
+  exportFilename="my-export"   // adds an "Export CSV" button
+  bulkActions={(selectedRows, clearSelection) => (
+    <button onClick={() => handleBulkDelete(selectedRows, clearSelection)}>Delete</button>
+  )}
+/>
+```
+
+`priority: 'low'` on a column hides it below 640px instead of forcing the table into horizontal scroll — the Users page uses this for its "Created" column.
+
 ## Built-ins
 
 - **Theme** — dark / light / auto (follows OS), cycled from the top bar or `T`. All colors are CSS variables in `styles/index.css`; retheme by editing `:root` / `html[data-theme="light"]`.
 - **Sidebar** — nav from the page registry + panel toggles; collapses to an icon rail (`Cmd/Ctrl+B`); hidden on mobile (hamburger menu takes over).
-- **Keyboard shortcuts** — `Cmd/Ctrl+1…9` panels, `Cmd/Ctrl+\`` toggle all, `Esc` close all, `Cmd/Ctrl+B` sidebar, `T` theme, `?` shortcut list.
+- **Keyboard shortcuts** — `Cmd/Ctrl+K` command palette, `Cmd/Ctrl+1…9` panels, `Cmd/Ctrl+\`` toggle all, `Esc` close all, `Cmd/Ctrl+B` sidebar, `T` theme, `?` shortcut list.
+- **Command palette** — `Cmd/Ctrl+K`; see "How to: command palette" above.
+- **Notifications** — persistent bell dropdown, separate from toasts; see "How to: notifications" above.
 - **Toasts** — `useAppStore.getState().addToast({ type: 'success'|'error'|'info'|'warning', message })`.
 - **Persistence** — theme, sidebar state, and panel layout auto-save per user (guests get a shared slot) and restore on load.
-- **UI component library** — `import { Modal, ConfirmDialog, Tabs, Collapsible, ProgressBar, SearchInput, DataTable, StatCard, PageHeader, EmptyState } from '../components/ui'`. DataTable is sortable/searchable/paginated.
-- **UI Kit page** — a living gallery of everything above, organized in tabs (Basics / Components / Charts).
+- **Forms** — `useForm` + `Field.*` + `validators`; see "How to: forms & validation" above.
+- **UI component library** — `import { Modal, ConfirmDialog, Tabs, Collapsible, ProgressBar, SearchInput, DataTable, StatCard, PageHeader, EmptyState } from '../components/ui'`. DataTable is sortable/searchable/paginated, with optional row selection, bulk actions, and CSV export.
+- **UI Kit page** — a living gallery of everything above, organized in tabs (Basics / Components / Forms / Charts).
 - **Dashboard page** — a full example wiring stat cards, charts, and a data table together.
+- **Responsive** — sidebar and search collapse into a hamburger menu below 768px; stat grids and dashboards reflow at 640px/420px; tables hide `priority: 'low'` columns instead of scrolling.
 
 ## Redeploy checklist for a new tool
 
