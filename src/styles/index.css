@@ -2700,9 +2700,20 @@ html[data-theme="light"] {
    edge at the trigger button's right edge (transform, not `right` — the
    anchor rect is in viewport coordinates from getBoundingClientRect, and a
    plain `left` from that reads naturally) so it never runs off the
-   viewport's right edge for a tab near the end of the strip. */
+   viewport's right edge for a tab near the end of the strip.
+
+   `right: 0` MUST be cleared here — .profile-dropdown sets it for its
+   normal position: absolute usage (right-aligned within its own trigger's
+   box), but combined with position: fixed and an inline `left` from JS, a
+   surviving `right: 0` stretches the box across the whole gap to the
+   viewport's right edge instead of sizing to content. That's what was
+   making this menu balloon out past the left edge of the screen for any
+   tab that wasn't already near the right edge. */
 .dashboard-tab-menu {
   position: fixed;
+  right: auto;
+  width: max-content;
+  max-width: 220px;
   min-width: 170px;
   transform: translateX(-100%);
 }
