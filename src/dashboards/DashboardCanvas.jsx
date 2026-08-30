@@ -34,6 +34,7 @@ import useAppStore from '../store/useAppStore'
 import WidgetFrame from './WidgetFrame'
 import WidgetRenderer from '../widgets/WidgetRenderer'
 import { WIDGET_TYPES_BY_ID } from '../widgets/widgets.config'
+import { exportWidgetTemplate } from '../widgets/widgetTemplates'
 import { IconApps } from '@tabler/icons-react'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
@@ -51,9 +52,9 @@ const ResponsiveGridLayout = WidthProvider(Responsive)
 const BREAKPOINTS = { lg: 900, md: 700, sm: 520, xs: 360, xxs: 0 }
 const COLS = { lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }
 
-export default function DashboardCanvas({ dashboard, onConfigureWidget }) {
+export default function DashboardCanvas({ dashboard, onConfigureWidget, onSaveWidgetTemplate }) {
   const { applyLayout, removeWidget, duplicateWidget } = useDashboardStore()
-  const togglePanel = useAppStore((s) => s.togglePanel)
+  const { togglePanel, addToast } = useAppStore()
   // onDragStop/onResizeStop receive (layout, oldItem, newItem, placeholder,
   // event, element) — no breakpoint — so the active one is tracked via
   // onBreakpointChange and read through a ref (not state) so a drag that
@@ -111,6 +112,17 @@ export default function DashboardCanvas({ dashboard, onConfigureWidget }) {
                 icon={type?.icon}
                 onSettings={() => onConfigureWidget(widget)}
                 onDuplicate={() => duplicateWidget(dashboard.id, widget.id)}
+                onSaveTemplate={() => onSaveWidgetTemplate(widget)}
+                onExport={async () => {
+                  try {
+                    await exportWidgetTemplate({
+                      name: widget.title || type?.title || 'Widget',
+                      widget: { type: widget.type, title: widget.title, config: widget.config, binding: widget.binding },
+                    })
+                  } catch (e) {
+                    addToast({ type: 'error', message: `Export failed: ${e.message}` })
+                  }
+                }}
                 onRemove={() => removeWidget(dashboard.id, widget.id)}
               >
                 <WidgetRenderer instance={widget} />

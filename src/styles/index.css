@@ -2643,6 +2643,7 @@ html[data-theme="light"] {
 }
 
 .dashboard-tab-actions {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -2652,6 +2653,12 @@ html[data-theme="light"] {
 }
 .dashboard-tab:hover .dashboard-tab-actions,
 .dashboard-tab.active .dashboard-tab-actions { opacity: 1; }
+
+.dashboard-tab-menu {
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 170px;
+}
 
 .dashboard-tab-add {
   display: flex;
@@ -2782,11 +2789,15 @@ html[data-theme="light"] {
   text-align: left;
   transition: all var(--duration-fast);
 }
-.widget-picker-item:hover:not(:disabled) {
+.widget-picker-item:hover:not(:disabled):not([aria-disabled="true"]) {
   background: var(--bg-hover);
   border-color: var(--border-strong);
 }
-.widget-picker-item:disabled {
+/* :disabled covers the built-in-types <button> list; [aria-disabled] covers
+   the "Your templates" list, which uses a div (see WidgetPickerPanel.jsx —
+   it nests Export/Delete buttons, which a real <button> can't contain). */
+.widget-picker-item:disabled,
+.widget-picker-item[aria-disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -2808,6 +2819,7 @@ html[data-theme="light"] {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
 }
 
 .widget-picker-item-title {
@@ -2819,6 +2831,13 @@ html[data-theme="light"] {
   font-size: var(--text-xs);
   color: var(--text-muted);
   line-height: 1.4;
+}
+
+.widget-picker-item-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 /* Empty-state "Add Widget" button inside the canvas */

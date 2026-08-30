@@ -1,13 +1,28 @@
 // DataSourcePanel — import CSV files, preview/rename/delete them. Imported
 // files show up immediately in every widget's "Data source" dropdown via
 // csvProvider.js reading the same storage this panel writes to.
+//
+// PanelHost mounts every registered panel unconditionally at app start (only
+// the visual FloatingPanel chrome toggles on open/close — see PanelHost.jsx
+// and FloatingPanel.jsx), so THIS component itself only mounts once, ever.
+// That means a plain "fetch on mount" effect only ever sees the dataset list
+// as it existed at app load: a dataset imported through any OTHER path (the
+// inline "+ Import CSV…" shortcut in a widget's config form, or a shared
+// dashboard's snapshot rehydration — both call csvDatasets.js directly, not
+// through this panel) would silently never appear here, no matter how many
+// times the panel is opened and closed. Reproduced exactly this way: a
+// dashboard import rehydrated a CSV snapshot into real storage, confirmed
+// present in IndexedDB, yet this panel kept showing "no datasets" through
+// three separate open/close cycles. Fixed by subscribing to
+// onDatasetsChanged, which every mutator in csvDatasets.js already notifies
+// on — this panel was simply never listening.
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import FloatingPanel from '../panels/FloatingPanel'
 import useAppStore from '../store/useAppStore'
 import { ConfirmDialog, DataTable } from '../components/ui'
 import {
-  listCsvDatasets, importCsvFile, renameCsvDataset, deleteCsvDataset,
+  listCsvDatasets, importCsvFile, renameCsvDataset, deleteCsvDataset, onDatasetsChanged,
 } from './csvDatasets'
 import {
   IconFileImport, IconTrash, IconPencil, IconEye, IconCheck, IconDatabase,
@@ -24,7 +39,10 @@ export default function DataSourcePanel() {
   const importRef = useRef(null)
 
   const refresh = useCallback(() => listCsvDatasets().then(setDatasets), [])
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => {
+    refresh()
+    return onDatasetsChanged(refresh)
+  }, [refresh])
 
   const handleImport = async (file) => {
     if (!file) return

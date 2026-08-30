@@ -10,9 +10,12 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   IconGripVertical, IconDots, IconSettings, IconCopy, IconTrash,
+  IconDeviceFloppy, IconDownload,
 } from '@tabler/icons-react'
 
-export default function WidgetFrame({ title, icon, onSettings, onDuplicate, onRemove, children }) {
+export default function WidgetFrame({
+  title, icon, onSettings, onDuplicate, onRemove, onSaveTemplate, onExport, children,
+}) {
   const [menuOpen, setMenuOpen] = useState(false)
   const ref = useRef(null)
 
@@ -46,6 +49,8 @@ export default function WidgetFrame({ title, icon, onSettings, onDuplicate, onRe
             <div className="profile-dropdown widget-frame-menu">
               {onSettings && item(IconSettings, 'Settings', onSettings)}
               {onDuplicate && item(IconCopy, 'Duplicate', onDuplicate)}
+              {onSaveTemplate && item(IconDeviceFloppy, 'Save as template', onSaveTemplate)}
+              {onExport && item(IconDownload, 'Export file', onExport)}
               {onRemove && item(IconTrash, 'Remove', onRemove, true)}
             </div>
           )}

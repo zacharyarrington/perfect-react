@@ -11,8 +11,50 @@ import useAppStore from '../store/useAppStore'
 import DashboardTabs from './DashboardTabs'
 import DashboardCanvas from './DashboardCanvas'
 import WidgetConfigModal from '../widgets/WidgetConfigModal'
-import { PageHeader } from '../components/ui'
+import { Modal, PageHeader } from '../components/ui'
+import { Field, useForm } from '../components/forms'
+import { saveWidgetTemplate } from '../widgets/widgetTemplates'
+import { WIDGET_TYPES_BY_ID } from '../widgets/widgets.config'
 import { IconPlus } from '@tabler/icons-react'
+
+function SaveWidgetTemplateModal({ instance, onClose }) {
+  const addToast = useAppStore((s) => s.addToast)
+  const type = instance ? WIDGET_TYPES_BY_ID[instance.type] : null
+  const form = useForm({
+    initialValues: { name: instance ? (instance.title || type?.title || 'Widget') : '', description: '' },
+    validate: (v) => ({ name: !v.name.trim() ? 'Name is required' : null }),
+    onSubmit: async (values) => {
+      await saveWidgetTemplate(instance, values.name, values.description)
+      addToast({ type: 'success', message: `Saved "${values.name}" as a widget template` })
+      onClose()
+    },
+  })
+
+  return (
+    <Modal
+      open={Boolean(instance)}
+      onClose={onClose}
+      title="Save widget as template"
+      width={400}
+      footer={
+        <>
+          <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="btn btn-primary" onClick={form.handleSubmit} disabled={form.submitting}>
+            {form.submitting ? 'Saving…' : 'Save'}
+          </button>
+        </>
+      }
+    >
+      <form onSubmit={form.handleSubmit}>
+        <Field.Text label="Name" required {...form.field('name')} />
+        <Field.Textarea label="Description" hint="Optional" rows={2} {...form.field('description')} />
+        <p className="field-hint">
+          Saved templates appear in the widget picker alongside the built-in types.
+        </p>
+      </form>
+    </Modal>
+  )
+}
 
 export default function DashboardShell() {
   const { dashboardId } = useParams()
@@ -20,6 +62,7 @@ export default function DashboardShell() {
   const { dashboards, loaded, activeDashboardId, setActiveDashboard } = useDashboardStore()
   const togglePanel = useAppStore((s) => s.togglePanel)
   const [configuringWidget, setConfiguringWidget] = useState(null)
+  const [templatingWidget, setTemplatingWidget] = useState(null)
 
   const dashboard = dashboardId
     ? dashboards.find((d) => d.id === dashboardId)
@@ -55,6 +98,7 @@ export default function DashboardShell() {
         key={dashboard.id}
         dashboard={dashboard}
         onConfigureWidget={setConfiguringWidget}
+        onSaveWidgetTemplate={setTemplatingWidget}
       />
       {configuringWidget && (
         <WidgetConfigModal
@@ -63,6 +107,7 @@ export default function DashboardShell() {
           onClose={() => setConfiguringWidget(null)}
         />
       )}
+      <SaveWidgetTemplateModal instance={templatingWidget} onClose={() => setTemplatingWidget(null)} />
     </div>
   )
 }
