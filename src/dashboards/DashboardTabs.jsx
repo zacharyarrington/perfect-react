@@ -140,6 +140,11 @@ export default function DashboardTabs({ activeDashboardId }) {
   return (
     <>
       <div className="dashboard-tabs">
+        {/* Only this inner element scrolls horizontally — see the
+            .dashboard-tabs / .dashboard-tab-scroll comment in index.css for
+            why the scroll and the tooltip-clipping fix are split across two
+            elements instead of living on one. */}
+        <div className="dashboard-tab-scroll">
         {sorted.map((d, i) => {
           const isActive = d.id === activeDashboardId
           return (
@@ -216,6 +221,7 @@ export default function DashboardTabs({ activeDashboardId }) {
             </div>
           )
         })}
+        </div>
 
         <button
           className="dashboard-tab-add"

@@ -2580,15 +2580,49 @@ html[data-theme="light"] {
 }
 .dashboard-toolbar .dashboard-tabs { flex: 1; min-width: 0; }
 
-/* ── Dashboard tabs ── */
+/* ── Dashboard tabs ──
+   Bug: hovering the Pin/More/"+ New"/Import buttons in this bar showed no
+   tooltip — they looked stuck behind the canvas below. Root cause: setting
+   overflow-x on an element computes its overflow-y to auto too (there's no
+   way to scroll one axis and leave the other visible), and every tooltip
+   here is an absolutely-positioned ::after sitting ~20px below its button —
+   enough to genuinely extend the bar's scrollHeight past its clientHeight
+   (reproduced: 64 vs 44), so overflow-y actually clipped them, not just
+   theoretically computed to auto.
+
+   Fix, in two parts:
+   1. .dashboard-tabs (the actual flex item .dashboard-toolbar sizes around)
+      stays overflow: visible and doesn't scroll at all — only the nested
+      .dashboard-tab-scroll does (see DashboardTabs.jsx). That alone fixes
+      the "+ New"/Import tooltips, which live outside the scrolling element.
+   2. .dashboard-tab-scroll still needs its OWN horizontal scroll, so its
+      Pin/More tooltips face the identical clipping problem one level in.
+      padding-bottom reserves the room those tooltips need in the box
+      overflow-y measures against; margin-bottom cancels the resulting
+      layout push so nothing downstream shifts. This only works cleanly
+      because it's applied to .dashboard-tab-scroll and not directly to
+      .dashboard-tabs — applying it to the flex item .dashboard-toolbar
+      itself sizes around was tried first and didn't visually break
+      anything measurable, but doing it one level down is the more
+      conservative choice now that the wrapper split exists anyway. */
 .dashboard-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: visible;
+}
+.dashboard-tab-scroll {
   display: flex;
   align-items: center;
   gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 20px;
+  margin-bottom: -20px;
 }
-.dashboard-tabs::-webkit-scrollbar { display: none; }
+.dashboard-tab-scroll::-webkit-scrollbar { display: none; }
 
 .dashboard-tab {
   display: flex;
