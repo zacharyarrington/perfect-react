@@ -2708,7 +2708,31 @@ html[data-theme="light"] {
    surviving `right: 0` stretches the box across the whole gap to the
    viewport's right edge instead of sizing to content. That's what was
    making this menu balloon out past the left edge of the screen for any
-   tab that wasn't already near the right edge. */
+   tab that wasn't already near the right edge.
+
+   .profile-dropdown's inherited `animation: scaleIn` sets `transform:
+   scale(...)` in its keyframes — a transform set inside a running
+   animation overrides any other `transform` on the same element for the
+   animation's whole duration, so this menu's own translateX(-100%)
+   positioning was getting clobbered for the first 350ms: it rendered
+   un-translated (right edge at `left`, extending further right instead of
+   left) until the animation finished, then visibly snapped left into its
+   real position — which is exactly the "menu jumps out from under the
+   cursor a moment after opening" behavior this was.
+
+   A first fix tried baking translateX(-100%) into scaleIn's own keyframes
+   (translateX(-100%) scale(...) on both ends) — that stopped the ~900px
+   snap but left a smaller, still-visible ~15px drift for the animation's
+   whole 350ms (measured directly: x drifted 197px -> 183px frame by
+   frame, confirmed gone the instant animations are disabled entirely).
+   Combining a percentage translate with a scale in one `transform` isn't a
+   simple "translate by a fixed amount, independently scaled box" the way
+   it might look — transform-origin applies to the WHOLE combined
+   transform, not scale() alone, so the effective on-screen position
+   genuinely shifts as the scale animates. Simplest fix that's actually
+   correct rather than approximately correct: this menu fades in with no
+   scale at all, so translateX(-100%) is the only transform in play for its
+   entire lifetime and can't drift. */
 .dashboard-tab-menu {
   position: fixed;
   right: auto;
@@ -2716,6 +2740,11 @@ html[data-theme="light"] {
   max-width: 220px;
   min-width: 170px;
   transform: translateX(-100%);
+  animation: dashboardTabMenuIn var(--duration-fast) var(--ease-smooth);
+}
+@keyframes dashboardTabMenuIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .dashboard-tab-add {
