@@ -7,8 +7,12 @@
 //
 // Field kinds:
 //   source-select      Field.Select populated from every registered data
-//                       source, plus a "+ Import CSV…" sentinel (wired up
-//                       once the Data Sources panel exists in a later stage).
+//                       source, plus a trailing "+ Import CSV…" sentinel
+//                       option — picking it opens a file dialog, imports the
+//                       CSV via csvDatasets.js, and auto-selects the new
+//                       dataset in this same field so a user who realizes
+//                       mid-config that they have no data source never has
+//                       to bounce out to the Data Sources panel and back.
 //   field-select       Field.Select populated from the CURRENT source's
 //                       schema (registry.getSourceSchema), filtered by
 //                       fieldType if set.
@@ -28,10 +32,12 @@
    needs alongside it; splitting them into a separate file would be pure
    ceremony for functions this tightly coupled to the renderer above. */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Field from '../components/forms/Field'
 import { validators } from '../components/forms'
-import { listAllSources, getSourceSchema } from '../dataSources/registry'
+import { listAllSources, getSourceSchema, makeSourceId } from '../dataSources/registry'
+import { importCsvFile } from '../dataSources/csvDatasets'
+import useAppStore from '../store/useAppStore'
 import { CHART_COLORS } from '../components/charts/chartTheme'
 
 const REFRESH_OPTIONS = [
@@ -43,6 +49,7 @@ const REFRESH_OPTIONS = [
 ]
 
 const MULTISELECT_DEFAULT_MAX = 4
+const IMPORT_CSV_SENTINEL = '__import_csv__'
 
 /** True unless the field declares visibleWhen and it evaluates false for the current form values. */
 export function isFieldVisible(field, values) {
@@ -120,13 +127,32 @@ function FieldMultiSelect({ label, value, onChange, options, max = MULTISELECT_D
  * source changes.
  */
 export default function ConfigSchemaForm({ schema, form, onSourceChanged }) {
+  const addToast = useAppStore((s) => s.addToast)
   const [sources, setSources] = useState([])
   const [sourceFields, setSourceFields] = useState([])
+  const [importing, setImporting] = useState(false)
+  const importRef = useRef(null)
+  const pendingSourceFieldKey = useRef(null)
   const sourceId = form.values.sourceId
 
-  useEffect(() => {
-    listAllSources().then(setSources)
-  }, [])
+  const refreshSources = () => listAllSources().then(setSources)
+  useEffect(() => { refreshSources() }, [])
+
+  const handleCsvChosen = async (file, sourceFieldKey) => {
+    if (!file) return
+    setImporting(true)
+    try {
+      const { dataset } = await importCsvFile(file)
+      await refreshSources()
+      form.setValue(sourceFieldKey, makeSourceId('csv', dataset.id))
+      addToast({ type: 'success', message: `Imported "${dataset.name}" — ${dataset.rowCount} rows` })
+    } catch (e) {
+      addToast({ type: 'error', message: `Import failed: ${e.message}` })
+    } finally {
+      setImporting(false)
+      if (importRef.current) importRef.current.value = ''
+    }
+  }
 
   // Reload field options whenever the bound source changes, and drop any
   // field-select/field-multiselect selections that no longer exist on the
@@ -166,6 +192,13 @@ export default function ConfigSchemaForm({ schema, form, onSourceChanged }) {
 
   return (
     <>
+      <input
+        ref={importRef}
+        type="file"
+        accept=".csv,text/csv"
+        style={{ display: 'none' }}
+        onChange={(e) => handleCsvChosen(e.target.files?.[0], pendingSourceFieldKey.current)}
+      />
       {schema.filter((f) => isFieldVisible(f, form.values)).map((f) => {
         const fieldProps = form.field(f.key)
 
@@ -176,9 +209,21 @@ export default function ConfigSchemaForm({ schema, form, onSourceChanged }) {
                 key={f.key}
                 label={f.label}
                 required={f.required}
-                hint={f.hint}
+                hint={importing ? 'Importing…' : f.hint}
+                disabled={importing}
                 {...fieldProps}
-                options={sources.map((s) => ({ value: s.sourceId, label: `${s.label} (${s.providerLabel})` }))}
+                onChange={(value) => {
+                  if (value === IMPORT_CSV_SENTINEL) {
+                    pendingSourceFieldKey.current = f.key
+                    importRef.current?.click()
+                    return
+                  }
+                  fieldProps.onChange(value)
+                }}
+                options={[
+                  ...sources.map((s) => ({ value: s.sourceId, label: `${s.label} (${s.providerLabel})` })),
+                  { value: IMPORT_CSV_SENTINEL, label: '+ Import CSV…' },
+                ]}
                 placeholder="Choose a data source…"
               />
             )

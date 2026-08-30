@@ -2826,6 +2826,31 @@ html[data-theme="light"] {
   gap: var(--space-4);
 }
 
+/* ── Data Sources panel ── */
+.dataset-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.dataset-row-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dataset-row-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
 /* ============================================================
    Mobile responsive — kept last so it wins the cascade over the
    unconditional module rules above (.stat-grid, .dashboard-grid, etc.)

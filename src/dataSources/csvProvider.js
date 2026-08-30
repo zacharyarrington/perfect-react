@@ -1,25 +1,35 @@
-// csvProvider — serves user-imported CSV datasets.
-//
-// STUB for now — CSV import (parsing, storage, the Data Sources panel) is
-// its own build stage. This satisfies the provider interface today so
-// dataSources.config.js can register it and the picker/config UI won't
-// break; listDatasets() simply returns nothing until the real
-// implementation lands.
+// csvProvider — serves user-imported CSV datasets, matching the same
+// three-method provider interface every source (mock, this, a future real
+// API) implements. See dataSources.config.js for the interface contract.
+
+import { listCsvDatasets, getCsvDataset } from './csvDatasets'
 
 const csvProvider = {
   id: 'csv',
   label: 'Imported Files',
 
   async listDatasets() {
-    return []
+    const datasets = await listCsvDatasets()
+    return datasets.map(({ id, name, rowCount }) => ({
+      id,
+      label: name,
+      description: `${rowCount} row${rowCount !== 1 ? 's' : ''}`,
+    }))
   },
 
-  async getSchema() {
-    return []
+  async getSchema(datasetId) {
+    const dataset = await getCsvDataset(datasetId)
+    return dataset?.fields || []
   },
 
   async fetch(datasetId) {
-    throw new Error(`No imported dataset "${datasetId}" — CSV import isn't wired up yet`)
+    const dataset = await getCsvDataset(datasetId)
+    if (!dataset) throw new Error('This imported file no longer exists — pick a different data source')
+    return {
+      rows: dataset.rows,
+      fields: dataset.fields,
+      fetchedAt: new Date().toISOString(),
+    }
   },
 
   subscribe: null,
