@@ -52,9 +52,9 @@ const ResponsiveGridLayout = WidthProvider(Responsive)
 const BREAKPOINTS = { lg: 900, md: 700, sm: 520, xs: 360, xxs: 0 }
 const COLS = { lg: 12, md: 12, sm: 6, xs: 4, xxs: 2 }
 
-export default function DashboardCanvas({ dashboard, onConfigureWidget, onSaveWidgetTemplate }) {
+export default function DashboardCanvas({ dashboard, onConfigureWidget, onSaveWidgetTemplate, onAddWidget }) {
   const { applyLayout, removeWidget, duplicateWidget } = useDashboardStore()
-  const { togglePanel, addToast } = useAppStore()
+  const { addToast } = useAppStore()
   // onDragStop/onResizeStop receive (layout, oldItem, newItem, placeholder,
   // event, element) — no breakpoint — so the active one is tracked via
   // onBreakpointChange and read through a ref (not state) so a drag that
@@ -77,7 +77,7 @@ export default function DashboardCanvas({ dashboard, onConfigureWidget, onSaveWi
         <div className="empty-state">
           <div className="empty-state-title">This dashboard is empty</div>
           <div className="empty-state-desc">Add a widget to get started.</div>
-          <button className="btn btn-primary btn-sm" onClick={() => togglePanel('widgets')}>
+          <button className="btn btn-primary btn-sm" onClick={onAddWidget}>
             <IconApps size={14} /> Add Widget
           </button>
         </div>

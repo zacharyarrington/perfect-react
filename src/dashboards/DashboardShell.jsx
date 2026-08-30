@@ -15,6 +15,7 @@ import useAppStore from '../store/useAppStore'
 import DashboardTabs from './DashboardTabs'
 import DashboardCanvas from './DashboardCanvas'
 import WidgetConfigModal from '../widgets/WidgetConfigModal'
+import WidgetPickerModal from '../widgets/WidgetPickerModal'
 import { Modal, PageHeader, EmptyState } from '../components/ui'
 import { Field, useForm } from '../components/forms'
 import { saveWidgetTemplate } from '../widgets/widgetTemplates'
@@ -64,10 +65,10 @@ function SaveWidgetTemplateModal({ instance, onClose }) {
 export default function DashboardShell() {
   const { dashboardId } = useParams()
   const navigate = useNavigate()
-  const { dashboards, loaded, activeDashboardId, setActiveDashboard, createDashboard } = useDashboardStore()
-  const togglePanel = useAppStore((s) => s.togglePanel)
+  const { dashboards, loaded, activeDashboardId, setActiveDashboard, createDashboard, addWidget } = useDashboardStore()
   const [configuringWidget, setConfiguringWidget] = useState(null)
   const [templatingWidget, setTemplatingWidget] = useState(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const dashboard = dashboardId
     ? dashboards.find((d) => d.id === dashboardId)
@@ -81,11 +82,12 @@ export default function DashboardShell() {
     if (!dashboardId && dashboard) navigate(`/dashboard/${dashboard.id}`, { replace: true })
   }, [loaded, dashboard, dashboardId, activeDashboardId, setActiveDashboard, navigate])
 
-  // Command palette entries: jump straight to any dashboard by name, or
-  // create a new one, without leaving the keyboard. Re-registered whenever
-  // the dashboard list changes so a rename/create/delete is reflected
-  // immediately — registerCommand replaces by id, so this is safe to call
-  // on every change rather than only once.
+  // Command palette entries: jump straight to any dashboard by name, create
+  // a new one, or open the add-widget dialog for whichever dashboard is
+  // current — all without leaving the keyboard. Re-registered whenever the
+  // dashboard list (or the current one) changes so a rename/create/delete
+  // is reflected immediately — registerCommand replaces by id, so this is
+  // safe to call on every change rather than only once.
   useEffect(() => {
     const unregisters = dashboards.map((d) => registerCommand({
       id: `dashboard:${d.id}`,
@@ -101,8 +103,17 @@ export default function DashboardShell() {
       label: 'New dashboard',
       run: () => navigate(`/dashboard/${createDashboard({})}`),
     }))
+    if (dashboard) {
+      unregisters.push(registerCommand({
+        id: 'dashboard:add-widget',
+        section: 'Dashboards',
+        icon: <IconPlus size={16} />,
+        label: `Add widget to "${dashboard.name}"`,
+        run: () => setPickerOpen(true),
+      }))
+    }
     return () => unregisters.forEach((fn) => fn())
-  }, [dashboards, navigate, createDashboard])
+  }, [dashboards, dashboard, navigate, createDashboard])
 
   if (!loaded) return null
 
@@ -139,7 +150,7 @@ export default function DashboardShell() {
     <div className="dashboard-shell">
       <div className="dashboard-toolbar">
         <DashboardTabs activeDashboardId={dashboard.id} />
-        <button className="btn btn-ghost btn-sm" onClick={() => togglePanel('widgets')}>
+        <button className="btn btn-ghost btn-sm" onClick={() => setPickerOpen(true)}>
           <IconPlus size={14} /> Add widget
         </button>
       </div>
@@ -148,6 +159,7 @@ export default function DashboardShell() {
         dashboard={dashboard}
         onConfigureWidget={setConfiguringWidget}
         onSaveWidgetTemplate={setTemplatingWidget}
+        onAddWidget={() => setPickerOpen(true)}
       />
       {configuringWidget && (
         <WidgetConfigModal
@@ -157,6 +169,12 @@ export default function DashboardShell() {
         />
       )}
       <SaveWidgetTemplateModal instance={templatingWidget} onClose={() => setTemplatingWidget(null)} />
+      <WidgetPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        dashboard={dashboard}
+        onAddWidget={(widgetData) => addWidget(dashboard.id, widgetData)}
+      />
     </div>
   )
 }

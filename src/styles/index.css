@@ -2686,7 +2686,7 @@ html[data-theme="light"] {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--space-4);
+  padding: var(--space-1);
 }
 
 .widget-canvas-empty {
@@ -2789,17 +2789,9 @@ html[data-theme="light"] {
   text-align: left;
   transition: all var(--duration-fast);
 }
-.widget-picker-item:hover:not(:disabled):not([aria-disabled="true"]) {
+.widget-picker-item:hover {
   background: var(--bg-hover);
   border-color: var(--border-strong);
-}
-/* :disabled covers the built-in-types <button> list; [aria-disabled] covers
-   the "Your templates" list, which uses a div (see WidgetPickerPanel.jsx —
-   it nests Export/Delete buttons, which a real <button> can't contain). */
-.widget-picker-item:disabled,
-.widget-picker-item[aria-disabled="true"] {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .widget-picker-item-icon {
@@ -2842,7 +2834,7 @@ html[data-theme="light"] {
 
 /* Empty-state "Add Widget" button inside the canvas */
 .widget-canvas-empty .empty-state {
-  gap: var(--space-4);
+  gap: var(--space-1);
 }
 
 /* ── Data Sources panel ── */

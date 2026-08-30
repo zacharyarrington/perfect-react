@@ -1,59 +1,57 @@
-// WidgetPickerPanel — lists the built-in widget types AND saved widget
+// WidgetPickerModal — lists the built-in widget types AND saved widget
 // templates (a user's own configured widgets); click either to add it to
-// the currently active dashboard. Templates can be exported/imported as
-// .widget.json files right from here.
+// the currently active dashboard, then close. Templates can be exported/
+// imported as .widget.json files right from here.
 //
-// Reads the active dashboard straight from useDashboardStore rather than
-// via props, since floating panels are mounted globally by PanelHost and
-// aren't scoped to whichever page happens to be showing.
+// A dialog rather than a floating panel: unlike Layouts/Data Sources/Notes
+// (persistent tools you dip in and out of alongside your work), this is a
+// one-shot "pick something and go" action with no reason to stay pinned
+// open on the canvas — every existing floating panel in this app is the
+// former, which made a panel here the wrong fit despite matching the
+// pattern superficially.
+//
+// Owned by DashboardShell (open/close state, not registered in
+// panels.config.jsx / PanelHost), so it's scoped to whichever dashboard is
+// actually on screen rather than the global panel layer.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import FloatingPanel from '../panels/FloatingPanel'
+import { Modal } from '../components/ui'
 import useAppStore from '../store/useAppStore'
-import useDashboardStore from '../dashboards/useDashboardStore'
 import WIDGET_TYPES from './widgets.config'
 import {
   listWidgetTemplates, deleteWidgetTemplate, exportWidgetTemplate,
   importWidgetTemplateFromFile, instantiateWidgetTemplate,
 } from './widgetTemplates'
 import {
-  IconApps, IconFileImport, IconDownload, IconTrash,
+  IconFileImport, IconDownload, IconTrash,
 } from '@tabler/icons-react'
 
-export default function WidgetPickerPanel() {
+export default function WidgetPickerModal({ open, onClose, dashboard, onAddWidget }) {
   const addToast = useAppStore((s) => s.addToast)
-  const { dashboards, activeDashboardId, addWidget } = useDashboardStore()
-  const dashboard = dashboards.find((d) => d.id === activeDashboardId)
   const [templates, setTemplates] = useState([])
   const [importing, setImporting] = useState(false)
   const importRef = useRef(null)
 
   const refresh = useCallback(() => listWidgetTemplates().then(setTemplates), [])
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => { if (open) refresh() }, [open, refresh])
 
   const handleAddType = (type) => {
-    if (!dashboard) {
-      addToast({ type: 'warning', message: 'Open a dashboard first' })
-      return
-    }
-    addWidget(dashboard.id, { type: type.id })
+    onAddWidget({ type: type.id })
     addToast({ type: 'success', message: `${type.title} added to "${dashboard.name}"` })
+    onClose()
   }
 
   const handleAddTemplate = async (template) => {
-    if (!dashboard) {
-      addToast({ type: 'warning', message: 'Open a dashboard first' })
-      return
-    }
     try {
       const { widgetData, rehydratedCount } = await instantiateWidgetTemplate(template)
-      addWidget(dashboard.id, widgetData)
+      onAddWidget(widgetData)
       addToast({
         type: 'success',
         message: rehydratedCount > 0
           ? `"${template.name}" added — embedded dataset restored`
           : `"${template.name}" added to "${dashboard.name}"`,
       })
+      onClose()
     } catch (e) {
       addToast({ type: 'error', message: `Couldn't add template: ${e.message}` })
     }
@@ -91,13 +89,7 @@ export default function WidgetPickerPanel() {
   }
 
   return (
-    <FloatingPanel
-      panelKey="widgets"
-      title="Add Widget"
-      icon={<IconApps size={16} />}
-      defaultWidth={300}
-      defaultHeight={480}
-    >
+    <Modal open={open} onClose={onClose} title="Add Widget" width={480}>
       {templates.length > 0 && (
         <div className="panel-section">
           <div className="section-label">Your templates</div>
@@ -112,11 +104,10 @@ export default function WidgetPickerPanel() {
                 key={tpl.id}
                 className="widget-picker-item"
                 role="button"
-                tabIndex={dashboard ? 0 : -1}
-                aria-disabled={!dashboard}
-                onClick={() => dashboard && handleAddTemplate(tpl)}
+                tabIndex={0}
+                onClick={() => handleAddTemplate(tpl)}
                 onKeyDown={(e) => {
-                  if ((e.key === 'Enter' || e.key === ' ') && dashboard) {
+                  if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault()
                     handleAddTemplate(tpl)
                   }
@@ -163,7 +154,6 @@ export default function WidgetPickerPanel() {
               key={type.id}
               className="widget-picker-item"
               onClick={() => handleAddType(type)}
-              disabled={!dashboard}
             >
               <span className="widget-picker-item-icon">{type.icon}</span>
               <span className="widget-picker-item-body">
@@ -174,14 +164,6 @@ export default function WidgetPickerPanel() {
           ))}
         </div>
       </div>
-
-      {!dashboard && (
-        <div className="panel-section">
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-            Open a dashboard to add widgets to it.
-          </p>
-        </div>
-      )}
-    </FloatingPanel>
+    </Modal>
   )
 }

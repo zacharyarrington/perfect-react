@@ -23,7 +23,7 @@
 //               programmatically, e.g. the keybindings panel via "?")
 
 import { lazy } from 'react'
-import { IconNotes, IconSettings, IconKeyboard, IconStack2, IconLayoutBoard, IconApps, IconDatabase } from '@tabler/icons-react'
+import { IconNotes, IconSettings, IconKeyboard, IconStack2, IconLayoutBoard, IconDatabase } from '@tabler/icons-react'
 
 const PANELS = [
   {
@@ -40,14 +40,6 @@ const PANELS = [
     icon: <IconLayoutBoard size={18} />,
     component: lazy(() => import('../layouts/LayoutsPanel')),
     defaults: { open: false, x: 160, y: 60, w: 320, h: 420 },
-    showToggle: true,
-  },
-  {
-    key: 'widgets',
-    title: 'Add Widget',
-    icon: <IconApps size={18} />,
-    component: lazy(() => import('../widgets/WidgetPickerPanel')),
-    defaults: { open: false, x: 200, y: 80, w: 300, h: 420 },
     showToggle: true,
   },
   {
