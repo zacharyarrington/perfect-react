@@ -11,6 +11,7 @@ import {
 import { BarChart, LineChart, DonutChart } from '../components/charts'
 import { useForm, Field, validators } from '../components/forms'
 import { pushNotification } from '../notifications/notificationStore'
+import GridTab from './GridTab'
 import { IconUsers, IconInbox, IconRocket } from '@tabler/icons-react'
 
 // ── Demo data ────────────────────────────────────────────────────────────────
@@ -309,6 +310,7 @@ export default function ExamplePage() {
           { key: 'components', label: 'Components', content: <ComponentsTab /> },
           { key: 'forms', label: 'Forms', content: <FormsTab /> },
           { key: 'charts', label: 'Charts', content: <ChartsTab /> },
+          { key: 'grid', label: 'Layout Grid', content: <GridTab /> },
         ]}
       />
     </div>

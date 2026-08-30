@@ -19,7 +19,7 @@ const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform 
 
 export default function TopBar() {
   const {
-    panels, togglePanel,
+    panels, activatePanel,
     theme, setTheme,
     sidebarCollapsed, toggleSidebar,
     isLoading, loadingMessage,
@@ -80,7 +80,7 @@ export default function TopBar() {
               id={`btn-panel-${p.key}`}
               className={`btn btn-icon${panels[p.key]?.open ? ' active' : ''}`}
               data-tooltip={p.title}
-              onClick={() => togglePanel(p.key)}
+              onClick={() => activatePanel(p.key)}
             >
               {p.icon}
             </button>
@@ -128,7 +128,7 @@ export default function TopBar() {
               <button
                 key={p.key}
                 className={`btn btn-ghost topbar-mobile-panel-btn${panels[p.key]?.open ? ' active' : ''}`}
-                onClick={() => { togglePanel(p.key); setMobileMenuOpen(false) }}
+                onClick={() => { activatePanel(p.key); setMobileMenuOpen(false) }}
               >
                 <span className="topbar-mobile-panel-icon">{p.icon}</span>
                 <span className="topbar-mobile-panel-label">{p.title}</span>

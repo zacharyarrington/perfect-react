@@ -62,6 +62,13 @@ const PAGES = [
     permission: 'users.manage',
     showInNav: true,
   },
+  {
+    path: '/zacstestpage',
+    title: 'Zacs Test Page',
+    icon: <IconHome size={18} />,
+    component: lazy(() => import('../pages/Zacstestpage')),
+    showInNav: true,
+  },
 ]
 
 export default PAGES

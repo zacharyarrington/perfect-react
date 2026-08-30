@@ -10,7 +10,7 @@ import PAGES from '../config/pages.config'
 import PANELS from '../config/panels.config'
 
 export default function Sidebar() {
-  const { panels, togglePanel, sidebarCollapsed } = useAppStore()
+  const { panels, activatePanel, sidebarCollapsed } = useAppStore()
   const { hasPermission } = useAuth()
 
   const visiblePages  = PAGES.filter((p) => p.showInNav && hasPermission(p.permission))
@@ -42,7 +42,7 @@ export default function Sidebar() {
               key={panel.key}
               className={`sidebar-item${panels[panel.key]?.open ? ' active' : ''}`}
               data-tooltip={sidebarCollapsed ? panel.title : undefined}
-              onClick={() => togglePanel(panel.key)}
+              onClick={() => activatePanel(panel.key)}
             >
               <span className="sidebar-item-icon">{panel.icon}</span>
               {!sidebarCollapsed && <span className="sidebar-item-label">{panel.title}</span>}

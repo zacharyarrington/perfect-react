@@ -1,6 +1,6 @@
 # Admin Shell
 
-A reusable React admin-dashboard template built around a **floating window system**, a **registry-driven page/panel architecture**, and **local user/role/permission management** — plus opt-in modules: an embeddable **map component** (GeoJSON layers, legend, basemaps), **themed charts**, **shareable layout templates**, and a **UI component library**. Clone it, rename it, and start building your tool.
+A reusable React admin-dashboard template built around a **floating/dockable window system**, a **registry-driven page/panel architecture**, a **no-code dashboard & widget builder**, and **local user/role/permission management** — plus opt-in modules: an embeddable **map component** (GeoJSON layers, legend, basemaps), **themed charts**, **shareable layout templates**, and a **UI component library**. Clone it, rename it, and start building your tool.
 
 Extracted from the ReadyMapGo UI system: the glassmorphism design language, draggable/resizable panels, top-bar menu, and profile flow.
 
@@ -8,11 +8,13 @@ Extracted from the ReadyMapGo UI system: the glassmorphism design language, drag
 
 - **React 19 + Vite** — SPA, no server required
 - **react-router-dom** — client-side routing
-- **zustand** — app state (panels, theme, session, map layers)
+- **zustand** — app state (panels, dock, dashboards, theme, session, map layers)
 - **react-draggable / react-resizable** — floating windows
-- **localforage** — IndexedDB persistence (users, layouts, panel content)
+- **react-grid-layout** — dashboard widget grid
+- **localforage** — IndexedDB persistence (users, layouts, dashboards, panel content)
 - **mapbox-gl** — map module (lazy-loaded; needs a free token)
 - **recharts** — chart components (lazy-loaded)
+- **papaparse** — CSV import for data sources
 - **@tabler/icons-react** — icons
 
 ```bash
@@ -46,10 +48,13 @@ src/
     charts/             ← BarChart, LineChart, DonutChart (barrel: components/charts)
   map/                  ← MapView, useMapStore, LayersPanel, Legend, BasemapMenu
   layouts/              ← layout template manager + LayoutsPanel
+  dashboards/           ← multi-dashboard shell, tabs, widget grid, save/export templates
+  widgets/              ← widget type registry, config forms, Stat/Chart/Table/Text renderers
+  dataSources/          ← data provider registry (mock, CSV import), Data Sources panel
   command/              ← command palette (Cmd/Ctrl+K) + its command registry
   notifications/        ← persistent notification store + NotificationBell
   components/forms/     ← useForm, Field, validators (barrel: components/forms)
-  panels/               ← FloatingPanel + panel components
+  panels/               ← FloatingPanel, PanelChrome, Dock (docking rail), panel components
   pages/                ← page components
   store/                ← useAppStore (zustand), usePersistence
   styles/index.css      ← the whole design system (CSS variables)
@@ -91,6 +96,8 @@ Routing, the sidebar link, permission gating, and the top-bar title all update a
 ```
 
 You get for free: toggle buttons in the top bar + sidebar, a `Cmd/Ctrl+1…9` shortcut (registry order), drag/resize/minimize, z-ordering, clamping to the viewport, and per-user persisted position/size.
+
+Every panel is dockable by default. A "Dock" button in its header moves it into a tabbed rail on the right (`Cmd/Ctrl+D` to collapse/expand the rail) — it shares that space with any other docked panels via a tab strip, and "pop out" moves it back to floating at its last position/size. Set `dockable: false` on a registry entry to opt a panel out of docking entirely (e.g. one that only makes sense as a floating overlay). Docking is a desktop affordance — panels always render as floating bottom sheets below the mobile breakpoint, regardless of their docked state.
 
 ## How to: roles & permissions
 
@@ -141,6 +148,30 @@ What's included: GeoJSON layers (simple/categorical/graduated symbology via `Lay
 ## How to: layout templates (shareable workspaces)
 
 Open the **Layouts** panel: arrange your panels, save the workspace under a name, and apply it any time. **Export** writes a `.layout.json` file you can send to anyone using the app — they **Import** it from the same panel. Templates capture panel positions/sizes/open-state, sidebar state, and theme. Built-ins (`Default`, `Minimal`) live in `src/layouts/layoutTemplates.js` — add your own presets there.
+
+## How to: dashboards & widgets
+
+The **Dashboards** page (`/dashboard`) is a multi-dashboard, drag-and-resize widget grid (react-grid-layout), separate from the floating-panel system. Each dashboard is its own tab (rename, pin, duplicate, delete, drag to reorder — see `src/dashboards/DashboardTabs.jsx`); **+ New** adds one, and the **⋮** menu on a tab can save it as a reusable template or export it as a `.dashboard.json` file for **Import** to bring onto someone else's install.
+
+Adding a widget (the picker's "+ Add Widget") drops a *configured instance* of one of four built-in types — not a new type per widget, so there's no visual editor to build:
+
+| Type | What it shows | `dataShape` |
+|---|---|---|
+| **Stat** | One number, optional % change vs. a prior period | `aggregate` |
+| **Chart** | Bar / line / donut, switchable per instance | `rows` |
+| **Table** | Sortable/searchable rows | `rows` |
+| **Text** | A static note/heading — no data binding | `none` |
+
+Every widget's config form (field pickers, aggregate/refresh-interval, chart-type-specific fields) is generated from a schema, not hand-built per type — see `src/widgets/widgets.config.jsx` for the full field-kind reference. Add a genuinely new widget type by creating `src/widgets/types/MyWidget.jsx` (it receives `{ instance, rows, fields, value, delta, loading, error }`) and registering it there with a `configSchema`.
+
+## How to: data sources
+
+Widgets bind to a **data source**, addressed as a single `"<providerId>:<datasetId>"` string (e.g. `mock:weekly_signups`). Two providers ship built-in:
+
+- **`mock`** — a handful of demo datasets (`weekly_signups`, `daily_traffic`, `recent_activity`, …) so new widgets show real-looking data immediately.
+- **`csv`** — files your users import via the **Data Sources** panel (or the inline "+ Import CSV…" shortcut inside a widget's config form). They show up in every "Data source" dropdown app-wide as soon as they're imported.
+
+To wire up a real API, write a new provider module matching the three-method shape every provider implements — `listDatasets()`, `getSchema(datasetId)`, `fetch(datasetId, params)`, plus an optional `subscribe(datasetId, cb)` for live sources (`src/dataSources/apiProvider.example.js` is a commented-out starting point) — and register it in `src/dataSources/dataSources.config.js`. No widget code changes: `useWidgetData.js` is the only thing that ever calls into a provider.
 
 ## How to: charts
 
@@ -209,20 +240,40 @@ pushNotification({ title: 'Export finished', body: 'report.csv is ready', type: 
 
 `priority: 'low'` on a column hides it below 640px instead of forcing the table into horizontal scroll — the Users page uses this for its "Created" column.
 
+## How to: testing
+
+**Unit tests** (Vitest, no browser) cover store logic — actions, selectors, and persistence merge behavior — by calling `useAppStore.getState()` / `useAppStore.setState()` directly; nothing needs to render. Colocate a new test file next to the module it covers: `src/store/useAppStore.<topic>.test.js`.
+
+```bash
+npm test           # run once (CI-style)
+npm run test:watch # watch mode while developing
+```
+
+**End-to-end tests** (`@playwright/test`) cover real browser flows — drag-and-drop, portals, CSS visibility, persistence across an actual page reload — that can't be verified without a DOM. Specs live in `tests/e2e/*.spec.js`; shared helpers (like dismissing the first-run login dialog deterministically) live in `tests/e2e/fixtures.js` — see `loggedInPage` there for the pattern.
+
+```bash
+npx playwright install chromium   # first time only — downloads the browser
+npm run test:e2e                  # headless run; starts the dev server automatically
+npm run test:e2e:ui               # interactive UI mode, useful while writing a new spec
+```
+
+Add new unit tests next to the store/module they cover; add new e2e specs to `tests/e2e/` for flows that span multiple components (panels + sidebar + persistence, for example) and genuinely need a browser.
+
 ## Built-ins
 
 - **Theme** — dark / light / auto (follows OS), cycled from the top bar or `T`. All colors are CSS variables in `styles/index.css`; retheme by editing `:root` / `html[data-theme="light"]`.
 - **Sidebar** — nav from the page registry + panel toggles; collapses to an icon rail (`Cmd/Ctrl+B`); hidden on mobile (hamburger menu takes over).
-- **Keyboard shortcuts** — `Cmd/Ctrl+K` command palette, `Cmd/Ctrl+1…9` panels, `Cmd/Ctrl+\`` toggle all, `Esc` close all, `Cmd/Ctrl+B` sidebar, `T` theme, `?` shortcut list.
+- **Keyboard shortcuts** — `Cmd/Ctrl+K` command palette, `Cmd/Ctrl+1…9` panels, `Cmd/Ctrl+\`` toggle all, `Esc` close all, `Cmd/Ctrl+B` sidebar, `Cmd/Ctrl+D` dock rail, `T` theme, `?` shortcut list.
 - **Command palette** — `Cmd/Ctrl+K`; see "How to: command palette" above.
 - **Notifications** — persistent bell dropdown, separate from toasts; see "How to: notifications" above.
 - **Toasts** — `useAppStore.getState().addToast({ type: 'success'|'error'|'info'|'warning', message })`.
-- **Persistence** — theme, sidebar state, and panel layout auto-save per user (guests get a shared slot) and restore on load.
+- **Persistence** — theme, sidebar state, panel layout (including dock state), and dashboards auto-save per user (guests get a shared slot) and restore on load.
 - **Forms** — `useForm` + `Field.*` + `validators`; see "How to: forms & validation" above.
 - **UI component library** — `import { Modal, ConfirmDialog, Tabs, Collapsible, ProgressBar, SearchInput, DataTable, StatCard, PageHeader, EmptyState } from '../components/ui'`. DataTable is sortable/searchable/paginated, with optional row selection, bulk actions, and CSV export.
 - **UI Kit page** — a living gallery of everything above, organized in tabs (Basics / Components / Forms / Charts).
-- **Dashboard page** — a full example wiring stat cards, charts, and a data table together.
-- **Responsive** — sidebar and search collapse into a hamburger menu below 768px; stat grids and dashboards reflow at 640px/420px; tables hide `priority: 'low'` columns instead of scrolling.
+- **Dashboards** — multi-dashboard widget grid (Stat/Chart/Table/Text widgets, no-code config forms, data source binding, save-as-template/export/import); see "How to: dashboards & widgets" above.
+- **Docking** — any floating panel can be docked into a tabbed side rail instead; see "How to: add a floating panel" above.
+- **Responsive** — sidebar and search collapse into a hamburger menu below 768px; stat grids and dashboards reflow at 640px/420px; tables hide `priority: 'low'` columns instead of scrolling; the dock rail hides below 768px (docked panels fall back to floating).
 
 ## Redeploy checklist for a new tool
 
@@ -232,3 +283,4 @@ pushNotification({ title: 'Export finished', body: 'report.csv is ready', type: 
 4. `src/config/roles.config.js` — your roles/permissions
 5. Replace `HomePage.jsx`, add your pages/panels to the registries
 6. Delete `NotesPanel` / `ExamplePage` if you don't want the demos
+7. Clear or replace the seeded default dashboard (`initDashboardStorage` in `src/dashboards/dashboardStorage.js`) and the `mock` data source's demo datasets (`src/dataSources/mockProvider.js`) once you have real data

@@ -10,6 +10,7 @@ import TopBar from './components/TopBar'
 import Sidebar from './components/Sidebar'
 import Toast from './components/Toast'
 import PanelHost from './panels/PanelHost'
+import Dock from './panels/Dock'
 import LoginDialog from './auth/LoginDialog'
 import RequirePermission from './auth/RequirePermission'
 import NotFoundPage from './pages/NotFoundPage'
@@ -92,12 +93,13 @@ export default function App() {
       const mod = e.ctrlKey || e.metaKey
       const store = useAppStore.getState()
 
-      // Ctrl/Cmd+1–9 → toggle panels (registry order)
+      // Ctrl/Cmd+1–9 → activate panels (registry order) — routes to the dock
+      // or floats it, whichever the panel is currently set to
       if (mod && e.key >= '1' && e.key <= '9') {
         const key = SHORTCUT_PANEL_KEYS[parseInt(e.key, 10) - 1]
         if (key) {
           e.preventDefault()
-          store.togglePanel(key)
+          store.activatePanel(key)
         }
         return
       }
@@ -109,6 +111,13 @@ export default function App() {
         return
       }
 
+      // Ctrl/Cmd+D → collapse/expand the dock rail
+      if (mod && e.key === 'd') {
+        e.preventDefault()
+        store.toggleDock()
+        return
+      }
+
       // Ctrl/Cmd+` → toggle all panels
       if (mod && e.key === '`') {
         e.preventDefault()
@@ -116,7 +125,7 @@ export default function App() {
         if (openKeys.length > 0) {
           store.closeAllPanels()
         } else {
-          SHORTCUT_PANEL_KEYS.forEach((k) => store.openPanel(k))
+          SHORTCUT_PANEL_KEYS.forEach((k) => store.activatePanel(k))
         }
         return
       }
@@ -179,6 +188,7 @@ export default function App() {
           {/* Floating panels live inside the content area, above the page */}
           <PanelHost />
         </main>
+        <Dock />
       </div>
       <Toast />
       <CommandPalette />

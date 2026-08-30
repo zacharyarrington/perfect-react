@@ -22,3 +22,7 @@ npm-debug.log*
 
 # Netlify
 .netlify/
+
+# Test artifacts
+test-results/
+playwright-report/

@@ -28,4 +28,26 @@ export default defineConfig([
       'react-hooks/set-state-in-effect': 'off',
     },
   },
+  {
+    files: [
+      'src/**/*.test.{js,jsx}',
+      'tests/e2e/**/*.{js,jsx}',
+      'playwright.config.js',
+      'vitest.config.js',
+    ],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.vitest },
+    },
+  },
+  {
+    // Playwright fixtures (tests/e2e/fixtures.js) accept a `use` callback
+    // parameter per Playwright's own API — react-hooks otherwise flags it
+    // as a misnamed Hook call since it starts with "use". This is plain
+    // Node/Playwright code, not React, so the React-specific rules don't apply.
+    files: ['tests/e2e/**/*.{js,jsx}'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

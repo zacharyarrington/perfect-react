@@ -27,6 +27,7 @@ function getSections() {
       title: 'View',
       bindings: [
         { keys: [MOD, 'B'], description: 'Collapse / expand sidebar' },
+        { keys: [MOD, 'D'], description: 'Collapse / expand dock rail' },
         { keys: ['T'], description: 'Cycle theme' },
         { keys: ['?'], description: 'Show keyboard shortcuts' },
       ],

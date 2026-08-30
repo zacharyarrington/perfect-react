@@ -56,9 +56,17 @@ export default function LoginDialog() {
     if (user.preferences?.sidebarCollapsed != null) {
       store.setSidebarCollapsed(user.preferences.sidebarCollapsed)
     }
+    if (user.preferences?.dock) {
+      useAppStore.setState((s) => ({ dock: { ...s.dock, ...user.preferences.dock } }))
+    }
     if (user.layout?.panels) {
+      // Merge per-key, not by replacing the whole panels object — a saved
+      // entry from before a field like docked/dockOrder existed must not
+      // wipe out the fresh default for that field (see usePersistence.js).
       useAppStore.setState((s) => ({
-        panels: { ...s.panels, ...user.layout.panels },
+        panels: Object.fromEntries(
+          Object.keys(s.panels).map((k) => [k, { ...s.panels[k], ...user.layout.panels[k] }])
+        ),
       }))
     }
   }

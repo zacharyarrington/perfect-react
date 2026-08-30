@@ -21,6 +21,8 @@
 //   permission  optional permission string (see roles.config); omit = public
 //   showToggle  set false to hide from the top bar / sidebar (still toggleable
 //               programmatically, e.g. the keybindings panel via "?")
+//   dockable    set false to hide the "Dock" button — the panel can only ever
+//               float. Defaults to true; most panels should leave this unset.
 
 import { lazy } from 'react'
 import { IconNotes, IconSettings, IconKeyboard, IconStack2, IconLayoutBoard, IconDatabase } from '@tabler/icons-react'
@@ -79,7 +81,11 @@ const PANELS = [
 
 /** Initial panel layout state derived from the registry. */
 export const DEFAULT_PANELS = Object.fromEntries(
-  PANELS.map((p) => [p.key, { ...p.defaults }])
+  PANELS.map((p, i) => [p.key, { ...p.defaults, docked: false, dockOrder: i }])
 )
+
+/** Whether a panel may be moved into the dock (default true). */
+export const isDockable = (panelKey) =>
+  PANELS.find((p) => p.key === panelKey)?.dockable !== false
 
 export default PANELS

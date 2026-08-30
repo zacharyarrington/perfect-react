@@ -37,10 +37,22 @@ function getContentSize() {
   return { w: rect.width || window.innerWidth, h: rect.height || window.innerHeight }
 }
 
+// Merge saved panels onto the current (registry-derived) defaults per key,
+// not by replacing the whole panels object — a saved entry from before a
+// field like `docked`/`dockOrder` existed must not wipe out the fresh
+// default for that field just because the key itself was already saved.
+export function mergePanels(current, saved) {
+  if (!saved) return current
+  return Object.fromEntries(
+    Object.keys(current).map((k) => [k, { ...current[k], ...saved[k] }])
+  )
+}
+
 export default function usePersistence() {
   const panels = useAppStore((s) => s.panels)
   const theme = useAppStore((s) => s.theme)
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed)
+  const dock = useAppStore((s) => s.dock)
   const saveTimer = useRef(null)
   const restored = useRef(false)
 
@@ -48,12 +60,15 @@ export default function usePersistence() {
     const s = useAppStore.getState()
     const id = getActiveUserId()
     if (id) {
-      saveUserPreferences(id, { theme: s.theme, sidebarCollapsed: s.sidebarCollapsed }).catch(() => {})
+      saveUserPreferences(id, {
+        theme: s.theme, sidebarCollapsed: s.sidebarCollapsed, dock: s.dock,
+      }).catch(() => {})
     } else {
       mirrorPanelsToLocalStorageSync(s.panels)
       localforage.setItem(GUEST_STATE_KEY, {
         theme: s.theme,
         sidebarCollapsed: s.sidebarCollapsed,
+        dock: s.dock,
         panels: s.panels,
       }).catch(() => {})
     }
@@ -71,8 +86,11 @@ export default function usePersistence() {
         if (user.preferences?.sidebarCollapsed != null) {
           store.setSidebarCollapsed(user.preferences.sidebarCollapsed)
         }
+        if (user.preferences?.dock) {
+          useAppStore.setState((s) => ({ dock: { ...s.dock, ...user.preferences.dock } }))
+        }
         if (user.layout?.panels) {
-          useAppStore.setState((s) => ({ panels: { ...s.panels, ...user.layout.panels } }))
+          useAppStore.setState((s) => ({ panels: mergePanels(s.panels, user.layout.panels) }))
         }
       } else {
         const guest = await localforage.getItem(GUEST_STATE_KEY)
@@ -91,10 +109,11 @@ export default function usePersistence() {
         if (guest) {
           if (guest.theme) store.setTheme(guest.theme)
           if (guest.sidebarCollapsed != null) store.setSidebarCollapsed(guest.sidebarCollapsed)
+          if (guest.dock) useAppStore.setState((s) => ({ dock: { ...s.dock, ...guest.dock } }))
         }
         const resolvedPanels = panelsMirror?.panels || guest?.panels
         if (resolvedPanels) {
-          useAppStore.setState((s) => ({ panels: { ...s.panels, ...resolvedPanels } }))
+          useAppStore.setState((s) => ({ panels: mergePanels(s.panels, resolvedPanels) }))
         }
       }
 
@@ -116,7 +135,7 @@ export default function usePersistence() {
   useEffect(() => {
     if (!restored.current) return
     savePrefsNow()
-  }, [theme, sidebarCollapsed])
+  }, [theme, sidebarCollapsed, dock])
 
   // ── Panels: debounced auto-save ───────────────────────────────────────────
   // Dragging/resizing fires many updates per second, so this one is worth
