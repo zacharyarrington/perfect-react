@@ -1,6 +1,7 @@
 // WidgetFrame — chrome around every widget on the canvas: drag handle,
-// title, and a menu (settings/duplicate/remove). The actual widget content
-// is `children` — WidgetRenderer resolves the type and passes it in.
+// title, and a menu (settings/duplicate/save as template/export file/
+// remove). The actual widget content is `children` — WidgetRenderer
+// resolves the type, wraps it in an error boundary, and passes it in.
 //
 // The drag handle is a small area, not the whole card — react-grid-layout's
 // dragConfig.handle selector (see DashboardCanvas.jsx) targets

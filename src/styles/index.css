@@ -2910,6 +2910,20 @@ html[data-theme="light"] {
     left: 8px !important;
     width: auto !important;
   }
+
+  /* react-resizable's default handle is 20x20 — fine for a mouse pointer,
+     too small to reliably grab with a finger. Bumped to a comfortable touch
+     target on the widget canvas specifically (FloatingPanel's own resize
+     handle stays as-is; panels are typically dragged/resized on desktop).
+     Needs the .react-grid-item ancestor class too, matching react-grid-
+     layout's own `.react-grid-item > .react-resizable-handle` rule
+     (imported after this stylesheet, in DashboardCanvas.jsx) in specificity
+     — a plain `.widget-canvas .react-resizable-handle` has the same
+     specificity but loses on source order. */
+  .widget-canvas .react-grid-item .react-resizable-handle {
+    width: 32px;
+    height: 32px;
+  }
 }
 
 @media (max-width: 420px) {
