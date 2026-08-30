@@ -6,6 +6,7 @@
 // to "+ New" brings a shared file straight onto the canvas.
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import useDashboardStore from './useDashboardStore'
 import useAppStore from '../store/useAppStore'
@@ -66,17 +67,60 @@ export default function DashboardTabs({ activeDashboardId }) {
   const [renameValue, setRenameValue] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [menuOpenId, setMenuOpenId] = useState(null)
+  // The menu's own screen position, captured from its trigger button when
+  // opened — see the portal comment below for why this exists at all.
+  const [menuAnchorRect, setMenuAnchorRect] = useState(null)
   const [templateTarget, setTemplateTarget] = useState(null)
   const [importing, setImporting] = useState(false)
   const dragIndexRef = useRef(null)
-  const menuRef = useRef(null)
+  const menuTriggerRef = useRef(null)
+  const menuPortalRef = useRef(null)
   const importRef = useRef(null)
+  const activeTabRef = useRef(null)
+
+  // The tab strip's horizontal scrollbar is deliberately hidden (see
+  // .dashboard-tab-scroll in index.css), so without this a newly-created or
+  // newly-selected dashboard whose tab lands off the visible edge is
+  // effectively unreachable — nothing on screen even hints that scrolling
+  // is possible. Runs on every activeDashboardId change, which covers both
+  // creating a new dashboard (goTo() below switches to it immediately) and
+  // clicking any tab that's only partially in view.
+  useEffect(() => {
+    activeTabRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [activeDashboardId])
+
+  const closeMenu = () => { setMenuOpenId(null); setMenuAnchorRect(null) }
+
+  const openMenu = (id, e) => {
+    const trigger = e.currentTarget
+    setMenuAnchorRect(trigger.getBoundingClientRect())
+    setMenuOpenId((current) => (current === id ? null : id))
+  }
 
   useEffect(() => {
     if (!menuOpenId) return
-    const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpenId(null) }
+    // The menu is portaled to document.body (see below), so a click inside
+    // it is no longer a DOM descendant of the trigger button — both refs
+    // have to be checked, or the portal's own item clicks would look like
+    // "outside" and close the menu before their onClick fires.
+    const handler = (e) => {
+      if (menuTriggerRef.current?.contains(e.target)) return
+      if (menuPortalRef.current?.contains(e.target)) return
+      closeMenu()
+    }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    // Anchored by a getBoundingClientRect() snapshot taken at open time, not
+    // re-measured continuously — simplest correct behavior is to just close
+    // on scroll/resize rather than track and reposition, since "the menu
+    // silently drifts away from its button" is worse than "the menu closes".
+    const closeOnScrollOrResize = () => closeMenu()
+    window.addEventListener('scroll', closeOnScrollOrResize, true)
+    window.addEventListener('resize', closeOnScrollOrResize)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      window.removeEventListener('scroll', closeOnScrollOrResize, true)
+      window.removeEventListener('resize', closeOnScrollOrResize)
+    }
   }, [menuOpenId])
 
   // Pinned first, then insertion order — matches the "pin your favorites" ask directly.
@@ -100,7 +144,7 @@ export default function DashboardTabs({ activeDashboardId }) {
   }
 
   const handleExport = async (d) => {
-    setMenuOpenId(null)
+    closeMenu()
     const template = { name: d.name, dashboard: { widgets: d.widgets, gridCols: d.gridCols, rowHeight: d.rowHeight } }
     try {
       await exportDashboardTemplate(template)
@@ -150,6 +194,7 @@ export default function DashboardTabs({ activeDashboardId }) {
           return (
             <div
               key={d.id}
+              ref={isActive ? activeTabRef : null}
               className={`dashboard-tab${isActive ? ' active' : ''}`}
               draggable={renamingId !== d.id}
               onDragStart={() => handleDragStart(i)}
@@ -188,20 +233,25 @@ export default function DashboardTabs({ activeDashboardId }) {
                 </span>
               )}
 
-              <div className="dashboard-tab-actions" ref={menuOpenId === d.id ? menuRef : null}>
+              <div className="dashboard-tab-actions" ref={menuOpenId === d.id ? menuTriggerRef : null}>
                 <button
                   className="btn btn-icon btn-xs"
-                  onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === d.id ? null : d.id) }}
+                  onClick={(e) => { e.stopPropagation(); openMenu(d.id, e) }}
                   data-tooltip="More"
                 >
                   <IconDots size={12} />
                 </button>
-                {menuOpenId === d.id && (
-                  <div className="profile-dropdown dashboard-tab-menu" onClick={(e) => e.stopPropagation()}>
-                    <button className="profile-dropdown-item" onClick={() => { duplicateDashboard(d.id); setMenuOpenId(null) }}>
+                {menuOpenId === d.id && menuAnchorRect && createPortal(
+                  <div
+                    ref={menuPortalRef}
+                    className="profile-dropdown dashboard-tab-menu"
+                    style={{ top: menuAnchorRect.bottom + 4, left: menuAnchorRect.right }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button className="profile-dropdown-item" onClick={() => { duplicateDashboard(d.id); closeMenu() }}>
                       <IconCopy size={14} /> Duplicate
                     </button>
-                    <button className="profile-dropdown-item" onClick={() => { setTemplateTarget(d); setMenuOpenId(null) }}>
+                    <button className="profile-dropdown-item" onClick={() => { setTemplateTarget(d); closeMenu() }}>
                       <IconDeviceFloppy size={14} /> Save as template
                     </button>
                     <button className="profile-dropdown-item" onClick={() => handleExport(d)}>
@@ -210,12 +260,13 @@ export default function DashboardTabs({ activeDashboardId }) {
                     <div className="profile-dropdown-divider" />
                     <button
                       className="profile-dropdown-item profile-dropdown-signout"
-                      onClick={() => { setMenuOpenId(null); dashboards.length > 1 && setDeleteTarget(d) }}
+                      onClick={() => { closeMenu(); dashboards.length > 1 && setDeleteTarget(d) }}
                       disabled={dashboards.length <= 1}
                     >
                       <IconX size={14} /> Delete
                     </button>
-                  </div>
+                  </div>,
+                  document.body
                 )}
               </div>
             </div>
