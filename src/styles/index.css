@@ -2257,6 +2257,41 @@ html[data-theme="light"] {
   box-shadow: 0 0 0 3px rgba(239,68,68,0.12) !important;
 }
 
+.input:disabled, .select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Multi-select field (widget config forms) ── */
+.field-multiselect {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.field-multiselect-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.field-multiselect-item:hover { background: var(--bg-hover); }
+.field-multiselect-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.field-multiselect-item.disabled:hover { background: none; }
+
 .textarea {
   resize: vertical;
   min-height: 60px;

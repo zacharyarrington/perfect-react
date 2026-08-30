@@ -4,12 +4,13 @@
 // keeps the URL and the store's activeDashboardId in sync so every
 // dashboard is deep-linkable.
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import useDashboardStore from './useDashboardStore'
 import useAppStore from '../store/useAppStore'
 import DashboardTabs from './DashboardTabs'
 import DashboardCanvas from './DashboardCanvas'
+import WidgetConfigModal from '../widgets/WidgetConfigModal'
 import { PageHeader } from '../components/ui'
 import { IconPlus } from '@tabler/icons-react'
 
@@ -18,6 +19,7 @@ export default function DashboardShell() {
   const navigate = useNavigate()
   const { dashboards, loaded, activeDashboardId, setActiveDashboard } = useDashboardStore()
   const togglePanel = useAppStore((s) => s.togglePanel)
+  const [configuringWidget, setConfiguringWidget] = useState(null)
 
   const dashboard = dashboardId
     ? dashboards.find((d) => d.id === dashboardId)
@@ -52,8 +54,15 @@ export default function DashboardShell() {
       <DashboardCanvas
         key={dashboard.id}
         dashboard={dashboard}
-        onConfigureWidget={() => {}}
+        onConfigureWidget={setConfiguringWidget}
       />
+      {configuringWidget && (
+        <WidgetConfigModal
+          dashboardId={dashboard.id}
+          instance={configuringWidget}
+          onClose={() => setConfiguringWidget(null)}
+        />
+      )}
     </div>
   )
 }
