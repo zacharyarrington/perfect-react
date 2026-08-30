@@ -1,6 +1,14 @@
 // usePersistence — restores the session on mount and auto-saves layout,
 // theme, and sidebar state as they change. Signed-in users persist onto
 // their user record; guests persist to a shared local key.
+//
+// Panel layout saves are debounced through localforage (IndexedDB), which
+// is async — a pagehide handler alone can't guarantee that write finishes
+// before the document unloads (see dashboardStorage.js for the reproduced
+// case: a reload inside the debounce window silently drops the change).
+// The debounced/flush paths below also mirror the panels blob to
+// localStorage synchronously, and restore() prefers it when it's newer
+// than what made it into localforage.
 
 import { useEffect, useRef } from 'react'
 import localforage from 'localforage'
@@ -11,7 +19,16 @@ import {
 } from '../auth/userManager'
 
 const GUEST_STATE_KEY = 'appshell_guest_state'
+const GUEST_STATE_SYNC_KEY = 'appshell_guest_state_sync'
 const SAVE_DEBOUNCE_MS = 1500
+
+function mirrorPanelsToLocalStorageSync(panels) {
+  try {
+    localStorage.setItem(GUEST_STATE_SYNC_KEY, JSON.stringify({ panels, savedAt: Date.now() }))
+  } catch {
+    // best-effort only
+  }
+}
 
 function getContentSize() {
   const el = document.querySelector('.page-container')
@@ -33,6 +50,7 @@ export default function usePersistence() {
     if (id) {
       saveUserPreferences(id, { theme: s.theme, sidebarCollapsed: s.sidebarCollapsed }).catch(() => {})
     } else {
+      mirrorPanelsToLocalStorageSync(s.panels)
       localforage.setItem(GUEST_STATE_KEY, {
         theme: s.theme,
         sidebarCollapsed: s.sidebarCollapsed,
@@ -58,12 +76,25 @@ export default function usePersistence() {
         }
       } else {
         const guest = await localforage.getItem(GUEST_STATE_KEY)
+
+        // The localStorage mirror can be ahead of the localforage copy if a
+        // previous tab closed/reloaded before its debounced panels write
+        // landed — prefer the mirror's panels in that case.
+        let panelsMirror = null
+        try {
+          const raw = localStorage.getItem(GUEST_STATE_SYNC_KEY)
+          if (raw) panelsMirror = JSON.parse(raw)
+        } catch {
+          // corrupt/unavailable mirror — fall back to the localforage copy
+        }
+
         if (guest) {
           if (guest.theme) store.setTheme(guest.theme)
           if (guest.sidebarCollapsed != null) store.setSidebarCollapsed(guest.sidebarCollapsed)
-          if (guest.panels) {
-            useAppStore.setState((s) => ({ panels: { ...s.panels, ...guest.panels } }))
-          }
+        }
+        const resolvedPanels = panelsMirror?.panels || guest?.panels
+        if (resolvedPanels) {
+          useAppStore.setState((s) => ({ panels: { ...s.panels, ...resolvedPanels } }))
         }
       }
 
@@ -93,6 +124,10 @@ export default function usePersistence() {
   // never lost if the tab closes during the debounce window.
   useEffect(() => {
     if (!restored.current) return
+    // Mirror synchronously right away — cheap, and it's the copy that
+    // survives an unload before the debounce timer (or its async localforage
+    // write) gets to run.
+    if (!getActiveUserId()) mirrorPanelsToLocalStorageSync(panels)
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
       const s = useAppStore.getState()
@@ -105,6 +140,9 @@ export default function usePersistence() {
 
   // Flush any pending panel-layout save immediately when the page is about
   // to unload, so a drag right before closing the tab isn't silently lost.
+  // visibilitychange (tab backgrounded/closed) fires before any document
+  // teardown, so async work it starts is far more likely to actually finish
+  // than the same work started from pagehide — flush on both.
   useEffect(() => {
     const flush = () => {
       if (!saveTimer.current) return
@@ -114,7 +152,12 @@ export default function usePersistence() {
       if (id) saveUserLayout(id, s.panels).catch(() => {})
       else savePrefsNow()
     }
+    const flushIfHidden = () => { if (document.visibilityState === 'hidden') flush() }
     window.addEventListener('pagehide', flush)
-    return () => window.removeEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', flushIfHidden)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', flushIfHidden)
+    }
   }, [])
 }
