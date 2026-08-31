@@ -8,9 +8,10 @@ import useAuth from '../auth/useAuth'
 import APP_CONFIG from '../config/app.config'
 import PAGES from '../config/pages.config'
 import PANELS from '../config/panels.config'
+import { IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand } from '@tabler/icons-react'
 
 export default function Sidebar() {
-  const { panels, activatePanel, sidebarCollapsed } = useAppStore()
+  const { panels, activatePanel, sidebarCollapsed, toggleSidebar } = useAppStore()
   const { hasPermission } = useAuth()
 
   const visiblePages  = PAGES.filter((p) => p.showInNav && hasPermission(p.permission))
@@ -19,7 +20,18 @@ export default function Sidebar() {
   return (
     <nav className={`sidebar${sidebarCollapsed ? ' collapsed' : ''}`}>
       <div className="sidebar-section">
-        {!sidebarCollapsed && <div className="sidebar-section-label">Pages</div>}
+        
+
+    {sidebarCollapsed ? <button className="sidebar-item" data-tooltip="Expand sidebar" onClick={toggleSidebar}>
+      {sidebarCollapsed ? <IconLayoutSidebarLeftExpand size={18} /> : <IconLayoutSidebarLeftCollapse size={18} />}
+    </button>:null
+    }
+
+{!sidebarCollapsed && <div className="sidebar-section-label sidebar-w-button">Pages <button className='btn btn-icon topbar-sidebar-toggle' onClick={toggleSidebar}>
+  {sidebarCollapsed ? <IconLayoutSidebarLeftExpand size={18} /> : <IconLayoutSidebarLeftCollapse size={18} />}
+</button></div>}
+
+
         {visiblePages.map((page) => (
           <NavLink
             key={page.path}

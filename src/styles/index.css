@@ -332,6 +332,12 @@ code {
   gap: 2px;
 }
 
+.sidebar-w-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .sidebar-section-label {
   font-size: var(--text-xs);
   font-weight: 600;

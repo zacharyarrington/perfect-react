@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from 'react'
 import useAppStore from '../store/useAppStore'
 import PANELS from '../config/panels.config'
 import { registerDockSlot } from './DockSlots'
-import { IconX, IconLayoutSidebarRightExpand, IconGripVertical } from '@tabler/icons-react'
+import { IconX, IconLayoutSidebarRightCollapse, IconGripVertical } from '@tabler/icons-react'
 
 export default function Dock() {
   const panels = useAppStore((s) => s.panels)
@@ -77,6 +77,7 @@ export default function Dock() {
             className="dock-rail-collapsed-btn"
             onClick={toggleDock}
             data-tooltip={p.title}
+            data-tooltip-position="left"
           >
             {p.icon}
           </button>
@@ -144,7 +145,7 @@ export default function Dock() {
           onClick={toggleDock}
           title="Collapse dock"
         >
-          <IconLayoutSidebarRightExpand size={16} />
+          <IconLayoutSidebarRightCollapse size={16} />
         </button>
       </div>
 

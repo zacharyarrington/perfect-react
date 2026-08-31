@@ -40,13 +40,13 @@ export default function TopBar() {
     <>
       <header className="topbar">
         {/* Sidebar toggle */}
-        <button
+        {/* <button
           className="btn btn-icon topbar-sidebar-toggle"
           data-tooltip={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           onClick={toggleSidebar}
         >
           {sidebarCollapsed ? <IconLayoutSidebarLeftExpand size={18} /> : <IconLayoutSidebarLeftCollapse size={18} />}
-        </button>
+        </button> */}
 
         {/* Logo */}
         <a className="topbar-logo" href="/" onClick={(e) => { e.preventDefault(); navigate('/') }}>

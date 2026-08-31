@@ -61,10 +61,7 @@ const PAGES = [
     component: lazy(() => import('../pages/UsersPage')),
     permission: 'users.manage',
     showInNav: true,
-  },
-  // '/zacstestpage' removed — src/pages/Zacstestpage.jsx is missing from
-  // disk (never committed) and was breaking `npm run build`. Re-add an
-  // entry here once the page file exists again.
+  }
 ]
 
 export default PAGES
