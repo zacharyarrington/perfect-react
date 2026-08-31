@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
+import { ConfigProvider } from 'antd'
 import './styles/index.css'
 
 import APP_CONFIG from './config/app.config'
@@ -159,40 +160,47 @@ export default function App() {
   }, [])
 
   return (
-    <div className="app-container">
-      <TopBar />
-      <div className="app-body">
-        <Sidebar />
-        <main ref={contentRef} className="page-container">
-          <div className="page-scroll">
-            <Suspense fallback={null}>
-              <Routes>
-                {PAGES.map((page) => {
-                  const Page = page.component
-                  return (
-                    <Route
-                      key={page.path}
-                      path={page.path}
-                      element={
-                        <RequirePermission permission={page.permission}>
-                          <Page />
-                        </RequirePermission>
-                      }
-                    />
-                  )
-                })}
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Suspense>
-          </div>
-          {/* Floating panels live inside the content area, above the page */}
-          <PanelHost />
-        </main>
-        <Dock />
+    // AntD default theme, unwired to the app's own dark/light toggle for now
+    // (theme === 'auto' | 'dark' | 'light' above only drives the hand-rolled
+    // CSS variables via data-theme). AntD components will render in AntD's
+    // light theme regardless of that toggle until someone deliberately maps
+    // resolvedTheme -> ConfigProvider's algorithm (theme.darkAlgorithm).
+    <ConfigProvider>
+      <div className="app-container">
+        <TopBar />
+        <div className="app-body">
+          <Sidebar />
+          <main ref={contentRef} className="page-container">
+            <div className="page-scroll">
+              <Suspense fallback={null}>
+                <Routes>
+                  {PAGES.map((page) => {
+                    const Page = page.component
+                    return (
+                      <Route
+                        key={page.path}
+                        path={page.path}
+                        element={
+                          <RequirePermission permission={page.permission}>
+                            <Page />
+                          </RequirePermission>
+                        }
+                      />
+                    )
+                  })}
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </Suspense>
+            </div>
+            {/* Floating panels live inside the content area, above the page */}
+            <PanelHost />
+          </main>
+          <Dock />
+        </div>
+        <Toast />
+        <CommandPalette />
+        {showLoginDialog && <LoginDialog />}
       </div>
-      <Toast />
-      <CommandPalette />
-      {showLoginDialog && <LoginDialog />}
-    </div>
+    </ConfigProvider>
   )
 }

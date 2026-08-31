@@ -14,7 +14,9 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.3.4",
     "@tabler/icons-react": "^3.44.0",
+    "antd": "^6.6.2",
     "localforage": "^1.10.0",
     "mapbox-gl": "^3.21.0",
     "papaparse": "^5.7.0",

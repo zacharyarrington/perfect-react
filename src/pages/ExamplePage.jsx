@@ -12,6 +12,7 @@ import { BarChart, LineChart, DonutChart } from '../components/charts'
 import { useForm, Field, validators } from '../components/forms'
 import { pushNotification } from '../notifications/notificationStore'
 import GridTab from './GridTab'
+import AntdTab from './AntdTab'
 import { IconUsers, IconInbox, IconRocket } from '@tabler/icons-react'
 
 // ── Demo data ────────────────────────────────────────────────────────────────
@@ -311,6 +312,7 @@ export default function ExamplePage() {
           { key: 'forms', label: 'Forms', content: <FormsTab /> },
           { key: 'charts', label: 'Charts', content: <ChartsTab /> },
           { key: 'grid', label: 'Layout Grid', content: <GridTab /> },
+          { key: 'antd', label: 'Ant Design', content: <AntdTab /> },
         ]}
       />
     </div>
