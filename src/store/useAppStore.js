@@ -173,16 +173,27 @@ const useAppStore = create(
 
     // The one place "docked vs floating" branches for click-to-open, used by
     // the sidebar and top-bar toggle buttons and by keyboard shortcuts.
-    // Docked panels are never toggled closed this way — clicking a docked
-    // panel's button always brings it to the front, like clicking a
-    // background browser tab, not a toggle switch.
+    // Docked panels aren't toggled CLOSED this way (open:false) — clicking a
+    // docked panel's button when it's a background tab always brings it to
+    // the front first, like clicking a background browser tab, not a toggle
+    // switch, so its own open state and its dock siblings' are never
+    // touched. But clicking it again once it's ALREADY the front-most/active
+    // tab AND the rail is expanded collapses the whole rail (dock.open:
+    // false) — the docked-panel equivalent of a floating panel's toggle-to-
+    // close, without discarding any panel's open state to get there; the
+    // rail expands back to exactly this same tab on the next click.
     activatePanel: (panelKey) => {
       const panel = get().panels[panelKey]
       if (panel?.docked) {
-        set((s) => ({
-          panels: { ...s.panels, [panelKey]: { ...panel, open: true } },
-          dock: { ...s.dock, open: true, activeKey: panelKey },
-        }))
+        const { dock } = get()
+        if (dock.open && dock.activeKey === panelKey && panel.open) {
+          set((s) => ({ dock: { ...s.dock, open: false } }))
+        } else {
+          set((s) => ({
+            panels: { ...s.panels, [panelKey]: { ...panel, open: true } },
+            dock: { ...s.dock, open: true, activeKey: panelKey },
+          }))
+        }
       } else {
         get().togglePanel(panelKey)
       }

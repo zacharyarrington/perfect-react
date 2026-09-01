@@ -102,6 +102,8 @@ You get for free: toggle buttons in the top bar + sidebar, a `Cmd/Ctrl+1…9` sh
 
 Every panel is dockable by default. A "Dock" button in its header moves it into a tabbed rail on the right (`Cmd/Ctrl+D` to collapse/expand the rail) — it shares that space with any other docked panels via a tab strip, and "pop out" moves it back to floating at its last position/size. Set `dockable: false` on a registry entry to opt a panel out of docking entirely (e.g. one that only makes sense as a floating overlay). Docking is a desktop affordance — panels always render as floating bottom sheets below the mobile breakpoint, regardless of their docked state.
 
+Clicking a docked panel's own toggle button (top bar or sidebar) mirrors a floating panel's open/close toggle without discarding any panel's state to do it: if that panel isn't already the front-most tab, it's brought to front (rail opens if collapsed); if it's already the active tab and the rail is open, clicking again collapses the whole rail — clicking once more re-expands it to that same panel, exactly as it was.
+
 ## How to: roles & permissions
 
 Permissions are plain strings. `src/config/roles.config.js` defines the **default** roles a fresh install ships with:

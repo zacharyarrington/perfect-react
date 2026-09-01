@@ -142,7 +142,7 @@ describe('reorderDockTabs', () => {
 })
 
 describe('activatePanel', () => {
-  it('docked branch: never toggles closed — calling it twice keeps open:true', () => {
+  it('docked branch: never closes the panel itself — calling it twice keeps open:true, only the rail collapses', () => {
     useAppStore.getState().dockPanel('notes')
     useAppStore.getState().activatePanel('notes')
     useAppStore.getState().activatePanel('notes')
@@ -153,6 +153,28 @@ describe('activatePanel', () => {
     useAppStore.getState().dockPanel('notes')
     useAppStore.getState().dockPanel('settings')
     useAppStore.getState().toggleDock() // collapse it
+    useAppStore.getState().activatePanel('notes')
+    const { dock } = useAppStore.getState()
+    expect(dock.open).toBe(true)
+    expect(dock.activeKey).toBe('notes')
+  })
+
+  it('docked branch: activating the already-active tab while the rail is open collapses the rail instead of closing the panel', () => {
+    useAppStore.getState().dockPanel('notes')
+    // dockPanel leaves the rail open with 'notes' active — activating it
+    // again should now collapse the rail (the docked equivalent of a
+    // floating panel's toggle-to-close), same gesture the user asked to
+    // mirror, without discarding 'notes'' own open/active state to get there.
+    useAppStore.getState().activatePanel('notes')
+    const { dock, panels } = useAppStore.getState()
+    expect(dock.open).toBe(false)
+    expect(dock.activeKey).toBe('notes')
+    expect(panels.notes.open).toBe(true)
+  })
+
+  it('docked branch: activating a different (background) tab brings it to front instead of collapsing', () => {
+    useAppStore.getState().dockPanel('notes')
+    useAppStore.getState().dockPanel('settings') // settings is now active
     useAppStore.getState().activatePanel('notes')
     const { dock } = useAppStore.getState()
     expect(dock.open).toBe(true)
