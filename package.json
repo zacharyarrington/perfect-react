@@ -16,6 +16,12 @@
   "dependencies": {
     "@ant-design/icons": "^6.3.4",
     "@tabler/icons-react": "^3.44.0",
+    "@tiptap/core": "^3.31.0",
+    "@tiptap/extension-link": "^3.31.0",
+    "@tiptap/extension-placeholder": "^3.31.0",
+    "@tiptap/pm": "^3.31.0",
+    "@tiptap/react": "^3.31.0",
+    "@tiptap/starter-kit": "^3.31.0",
     "antd": "^6.6.2",
     "localforage": "^1.10.0",
     "mapbox-gl": "^3.21.0",

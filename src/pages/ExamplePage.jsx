@@ -7,6 +7,7 @@ import RequirePermission from '../auth/RequirePermission'
 import {
   PageHeader, Tabs, Modal, ConfirmDialog, Collapsible,
   ProgressBar, SearchInput, DataTable, StatCard, EmptyState,
+  RichTextEditor,
 } from '../components/ui'
 import { BarChart, LineChart, DonutChart } from '../components/charts'
 import { useForm, Field, validators } from '../components/forms'
@@ -226,6 +227,40 @@ function ComponentsTab() {
 
 // ── Tab: forms ───────────────────────────────────────────────────────────────
 
+function RichTextTab() {
+  const [html, setHtml] = useState(
+    '<h2>Rich text editor</h2><p>Tiptap-backed, with a small fixed toolbar. Try <strong>bold</strong>, <em>italic</em>, lists, and links.</p>'
+  )
+
+  return (
+    <>
+      <div className="card">
+        <div className="card-title" style={{ marginBottom: 4 }}>RichTextEditor</div>
+        <div className="card-desc" style={{ marginBottom: 12 }}>
+          Controlled — value in, HTML string out via <code>onChange</code>. Drop it straight into{' '}
+          <code>useForm</code> as <code>Field.RichText</code> (same label/error/hint/required/disabled
+          props as every other <code>Field.*</code>), or use <code>RichTextEditor</code> directly for
+          anything not going through a form.
+        </div>
+        <RichTextEditor value={html} onChange={setHtml} placeholder="Write something…" />
+      </div>
+
+      <div className="card">
+        <div className="card-title" style={{ marginBottom: 8 }}>HTML output</div>
+        <pre style={{
+          margin: 0, padding: 'var(--space-3)', background: 'var(--bg-hover)',
+          borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)',
+          fontFamily: 'var(--font-mono)', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+        }}>
+          {html}
+        </pre>
+      </div>
+    </>
+  )
+}
+
+// ── Tab: forms ───────────────────────────────────────────────────────────────
+
 function FormsTab() {
   const addToast = useAppStore((s) => s.addToast)
 
@@ -310,6 +345,7 @@ export default function ExamplePage() {
           { key: 'basics', label: 'Basics', content: <BasicsTab /> },
           { key: 'components', label: 'Components', content: <ComponentsTab /> },
           { key: 'forms', label: 'Forms', content: <FormsTab /> },
+          { key: 'richtext', label: 'Rich Text', content: <RichTextTab /> },
           { key: 'charts', label: 'Charts', content: <ChartsTab /> },
           { key: 'grid', label: 'Layout Grid', content: <GridTab /> },
           { key: 'antd', label: 'Ant Design', content: <AntdTab /> },

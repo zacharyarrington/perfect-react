@@ -15,6 +15,7 @@ Extracted from the ReadyMapGo UI system: the glassmorphism design language, drag
 - **mapbox-gl** — map module (lazy-loaded; needs a free token)
 - **recharts** — chart components (lazy-loaded)
 - **papaparse** — CSV import for data sources
+- **@tiptap/react** (+ starter-kit, link, placeholder) — rich text editor (`RichTextEditor` / `Field.RichText`)
 - **@tabler/icons-react** — icons
 
 ```bash
@@ -222,7 +223,25 @@ const form = useForm({
 </form>
 ```
 
-`Field` also has `.Select`, `.Textarea`, `.Checkbox`, and `.Color`. Errors only show once a field is touched or the form is submitted — see the Users page's "Add User" form or the UI Kit's Forms tab for full examples. `validators` composes: `required`, `minLength`, `maxLength`, `pattern`, `email`, `oneOf`, and `compose(...)` to chain them.
+`Field` also has `.Select`, `.Textarea`, `.Checkbox`, `.Color`, and `.RichText`. Errors only show once a field is touched or the form is submitted — see the Users page's "Add User" form or the UI Kit's Forms tab for full examples. `validators` composes: `required`, `minLength`, `maxLength`, `pattern`, `email`, `oneOf`, and `compose(...)` to chain them.
+
+## How to: rich text editing
+
+```jsx
+import { RichTextEditor } from '../components/ui'
+// or, inside a useForm-driven form:
+import { Field } from '../components/forms'
+
+const [html, setHtml] = useState('<p>Hello</p>')
+<RichTextEditor value={html} onChange={setHtml} placeholder="Write something…" />
+
+// Same label/error/hint/required/disabled props as every other Field.*:
+<Field.RichText label="Description" {...form.field('description')} />
+```
+
+Tiptap-backed (`@tiptap/react` + `starter-kit`/`link`/`placeholder`), with a small fixed toolbar (bold/italic/strike/inline code, H1/H2, bullet/numbered lists, blockquote, link, undo/redo). Controlled — `value` is an HTML string in, `onChange` hands you back an HTML string, same contract as `Field.Textarea`'s plain-string value, so it drops into `useForm` with no special-casing. See the UI Kit's **Rich Text** tab for a live demo with the HTML output visible alongside it.
+
+Grow the toolbar by importing another [Tiptap extension](https://tiptap.dev/docs/editor/extensions/overview) and adding it to the `extensions` array in `src/components/ui/RichTextEditor.jsx` — every extension plugs in the same way, so that array is the entire surface for adding tables, images, mentions, etc. later.
 
 ## How to: command palette
 
@@ -330,7 +349,7 @@ Add new unit tests next to the store/module they cover; add new e2e specs to `te
 - **Persistence** — theme, sidebar state, panel layout (including dock state), and dashboards auto-save per user (guests get a shared slot) and restore on load.
 - **Save status** — a small "Saving…/Saved" readout next to the page title in the top bar, fed by every auto-save pipeline above. Report into it from your own persistence code via `useAppStore.getState().reportSaving()/.reportSaved()/.reportSaveError()` — see `src/components/SaveStatusIndicator.jsx`.
 - **Forms** — `useForm` + `Field.*` + `validators`; see "How to: forms & validation" above.
-- **UI component library** — `import { Modal, ConfirmDialog, Tabs, Collapsible, ProgressBar, SearchInput, DataTable, StatCard, PageHeader, EmptyState } from '../components/ui'`. DataTable is sortable/searchable/paginated, with optional row selection, bulk actions, and CSV export.
+- **UI component library** — `import { Modal, ConfirmDialog, Tabs, Collapsible, ProgressBar, SearchInput, DataTable, StatCard, PageHeader, EmptyState, Skeleton, RichTextEditor } from '../components/ui'`. DataTable is sortable/searchable/paginated, with optional row selection, bulk actions, and CSV export.
 - **UI Kit page** — a living gallery of everything above, organized in tabs (Basics / Components / Forms / Charts).
 - **Dashboards** — multi-dashboard widget grid (Stat/Chart/Table/Text widgets, no-code config forms, data source binding, save-as-template/export/import); see "How to: dashboards & widgets" above.
 - **Docking** — any floating panel can be docked into a tabbed side rail instead; see "How to: add a floating panel" above.

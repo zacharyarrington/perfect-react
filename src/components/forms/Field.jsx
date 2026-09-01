@@ -5,12 +5,14 @@
 //   <Field.Textarea label="Notes" {...form.field('notes')} rows={4} />
 //   <Field.Checkbox label="Send invite email" {...form.field('sendInvite')} />
 //   <Field.Color label="Avatar color" {...form.field('color')} options={AVATAR_COLORS} />
+//   <Field.RichText label="Description" {...form.field('description')} />
 //
 // Every field accepts: label, error, hint, required, disabled — plus its own
 // value/onChange/onBlur wiring. `error` is rendered below the control and
 // also flips the control into an error state (red border).
 
 import { IconCheck, IconAlertCircle } from '@tabler/icons-react'
+import RichTextEditor from '../ui/RichTextEditor'
 
 function FieldWrapper({ label, error, hint, required, children }) {
   return (
@@ -141,5 +143,22 @@ function Color({ label, value, onChange, error, hint, required, options = [] }) 
   )
 }
 
-const Field = { Text, Textarea, Select, Checkbox, Color }
+function RichText({
+  label, value, onChange, onBlur, error, hint, required, disabled, placeholder,
+}) {
+  return (
+    <FieldWrapper label={label} error={error} hint={hint} required={required}>
+      <RichTextEditor
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        disabled={disabled}
+        error={Boolean(error)}
+      />
+    </FieldWrapper>
+  )
+}
+
+const Field = { Text, Textarea, Select, Checkbox, Color, RichText }
 export default Field
