@@ -69,6 +69,7 @@ function makeDashboard({ name, icon, order }) {
     name: name || 'New Dashboard',
     icon: icon || null,
     pinned: false,
+    locked: false,
     order: order ?? 0,
     widgets: [],
     gridCols: 12,
@@ -140,6 +141,16 @@ const useDashboardStore = create(
     togglePinned: (id) =>
       set((s) => ({
         dashboards: s.dashboards.map((d) => (d.id === id ? { ...d, pinned: !d.pinned } : d)),
+      })),
+
+    // Locking a dashboard freezes its widgets in place: react-grid-layout
+    // drag/resize is disabled (see DashboardCanvas) and WidgetFrame hides its
+    // chrome (grip + menu), so there's no affordance left that implies the
+    // layout can change. Deliberately NOT bumped into updatedAt — locking is
+    // a view-state toggle, not a content edit.
+    toggleDashboardLock: (id) =>
+      set((s) => ({
+        dashboards: s.dashboards.map((d) => (d.id === id ? { ...d, locked: !d.locked } : d)),
       })),
 
     setActiveDashboard: (id) => set({ activeDashboardId: id }),

@@ -126,16 +126,14 @@ export default function Dock() {
                 title={p.title}
               >
                 <span className="dock-tab-icon">{p.icon}</span>
-                {isActive && (<span className="dock-tab-name">{p.title}</span>)}
-                {isActive && (
-                  <button
-                    className="dock-tab-close"
-                    onClick={(e) => { e.stopPropagation(); closeDockedPanel(p.key) }}
-                    title="Close"
-                  >
-                    <IconX size={12} />
-                  </button>
-                )}
+                <span className="dock-tab-name">{p.title}</span>
+                <button
+                  className="dock-tab-close"
+                  onClick={(e) => { e.stopPropagation(); closeDockedPanel(p.key) }}
+                  title="Close"
+                >
+                  <IconX size={12} />
+                </button>
               </div>
             )
           })}

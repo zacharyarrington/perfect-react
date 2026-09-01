@@ -16,6 +16,8 @@ import LoginDialog from './auth/LoginDialog'
 import RequirePermission from './auth/RequirePermission'
 import NotFoundPage from './pages/NotFoundPage'
 import CommandPalette from './command/CommandPalette'
+import ShellErrorBoundary from './components/ShellErrorBoundary'
+import OnboardingBanner from './components/OnboardingBanner'
 
 import useAppStore from './store/useAppStore'
 import usePersistence from './store/usePersistence'
@@ -168,6 +170,7 @@ export default function App() {
     <ConfigProvider>
       <div className="app-container">
         <TopBar />
+        <OnboardingBanner />
         <div className="app-body">
           <Sidebar />
           <main ref={contentRef} className="page-container">
@@ -182,7 +185,9 @@ export default function App() {
                         path={page.path}
                         element={
                           <RequirePermission permission={page.permission}>
-                            <Page />
+                            <ShellErrorBoundary kind="page" label={`Page "${page.title}"`} resetKey={page.path}>
+                              <Page />
+                            </ShellErrorBoundary>
                           </RequirePermission>
                         }
                       />

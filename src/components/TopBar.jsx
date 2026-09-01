@@ -12,7 +12,6 @@ import UserBadge from './UserBadge'
 import NotificationBell from '../notifications/NotificationBell'
 import {
   IconSun, IconMoon, IconSunMoon, IconMenu2, IconX, IconSearch,
-  IconLayoutSidebarLeftCollapse, IconLayoutSidebarLeftExpand,
 } from '@tabler/icons-react'
 
 const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform || navigator.userAgent)
@@ -21,7 +20,6 @@ export default function TopBar() {
   const {
     panels, activatePanel,
     theme, setTheme,
-    sidebarCollapsed, toggleSidebar,
     isLoading, loadingMessage,
   } = useAppStore()
   const { hasPermission } = useAuth()
@@ -39,15 +37,6 @@ export default function TopBar() {
   return (
     <>
       <header className="topbar">
-        {/* Sidebar toggle */}
-        {/* <button
-          className="btn btn-icon topbar-sidebar-toggle"
-          data-tooltip={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          onClick={toggleSidebar}
-        >
-          {sidebarCollapsed ? <IconLayoutSidebarLeftExpand size={18} /> : <IconLayoutSidebarLeftCollapse size={18} />}
-        </button> */}
-
         {/* Logo */}
         <a className="topbar-logo" href="/" onClick={(e) => { e.preventDefault(); navigate('/') }}>
           <div className="topbar-logo-icon">{APP_CONFIG.logo}</div>

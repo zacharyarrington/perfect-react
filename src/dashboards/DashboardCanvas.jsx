@@ -85,8 +85,10 @@ export default function DashboardCanvas({ dashboard, onConfigureWidget, onSaveWi
     )
   }
 
+  const locked = Boolean(dashboard.locked)
+
   return (
-    <div className="widget-canvas">
+    <div className={`widget-canvas${locked ? ' widget-canvas-locked' : ''}`}>
       <ResponsiveGridLayout
         layouts={layouts}
         breakpoints={BREAKPOINTS}
@@ -96,6 +98,8 @@ export default function DashboardCanvas({ dashboard, onConfigureWidget, onSaveWi
         compactType="vertical"
         preventCollision={false}
         useCSSTransforms
+        isDraggable={!locked}
+        isResizable={!locked}
         draggableHandle=".widget-drag-handle"
         draggableCancel=".widget-no-drag"
         resizeHandles={['se']}
@@ -110,6 +114,7 @@ export default function DashboardCanvas({ dashboard, onConfigureWidget, onSaveWi
               <WidgetFrame
                 title={widget.title || type?.title || 'Widget'}
                 icon={type?.icon}
+                locked={locked}
                 onSettings={() => onConfigureWidget(widget)}
                 onDuplicate={() => duplicateWidget(dashboard.id, widget.id)}
                 onSaveTemplate={() => onSaveWidgetTemplate(widget)}

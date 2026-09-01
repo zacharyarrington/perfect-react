@@ -23,6 +23,12 @@ const APP_CONFIG = {
   // Role assigned to users created from the login dialog after the first
   // user exists. The very first user is always promoted to admin.
   defaultRole: 'viewer',
+
+  // Shows a dismissible "you just cloned this" banner pointing at this file
+  // and the README's redeploy checklist. Dismissal is remembered per browser
+  // (see OnboardingBanner.jsx) — flip to false once you've made this your
+  // own, or leave it on for a template repo you expect others to clone.
+  showCloneBanner: true,
 }
 
 export default APP_CONFIG

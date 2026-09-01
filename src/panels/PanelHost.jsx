@@ -5,6 +5,7 @@
 import { Suspense } from 'react'
 import PANELS from '../config/panels.config'
 import useAuth from '../auth/useAuth'
+import ShellErrorBoundary from '../components/ShellErrorBoundary'
 
 export default function PanelHost() {
   const { hasPermission } = useAuth()
@@ -13,7 +14,13 @@ export default function PanelHost() {
     <Suspense fallback={null}>
       {PANELS.filter((p) => hasPermission(p.permission)).map((p) => {
         const Panel = p.component
-        return <Panel key={p.key} />
+        return (
+          // One boundary per panel — a crash in one (docked or floating)
+          // must not take out its dock siblings or any other open panel.
+          <ShellErrorBoundary key={p.key} kind="panel" label={`Panel "${p.title}"`} resetKey={p.key}>
+            <Panel />
+          </ShellErrorBoundary>
+        )
       })}
     </Suspense>
   )

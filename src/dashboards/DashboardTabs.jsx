@@ -17,7 +17,7 @@ import {
 } from './dashboardTemplates'
 import {
   IconPlus, IconPin, IconPinnedFilled, IconCopy, IconX, IconDots,
-  IconDownload, IconDeviceFloppy, IconFileImport,
+  IconDownload, IconDeviceFloppy, IconFileImport, IconLock, IconLockOpen2
 } from '@tabler/icons-react'
 
 function SaveTemplateModal({ dashboard, onClose }) {
@@ -60,7 +60,7 @@ export default function DashboardTabs({ activeDashboardId }) {
   const addToast = useAppStore((s) => s.addToast)
   const {
     dashboards, createDashboard, updateDashboard, deleteDashboard,
-    duplicateDashboard, reorderDashboards, togglePinned,
+    duplicateDashboard, reorderDashboards, togglePinned, toggleDashboardLock,
   } = useDashboardStore()
 
   const [renamingId, setRenamingId] = useState(null)
@@ -134,6 +134,18 @@ export default function DashboardTabs({ activeDashboardId }) {
   const commitRename = (id) => {
     if (renameValue.trim()) updateDashboard(id, { name: renameValue.trim() })
     setRenamingId(null)
+  }
+
+  const activeDashboard = dashboards.find((d) => d.id === activeDashboardId)
+  const isLocked = Boolean(activeDashboard?.locked)
+
+  const toggleLockState = () => {
+    if (!activeDashboardId) return
+    toggleDashboardLock(activeDashboardId)
+    addToast({
+      type: 'info',
+      message: isLocked ? 'Dashboard unlocked — widgets can be moved and resized' : 'Dashboard locked — widgets are now fixed in place',
+    })
   }
 
   const handleDelete = (id) => {
@@ -296,6 +308,15 @@ export default function DashboardTabs({ activeDashboardId }) {
           style={{ display: 'none' }}
           onChange={(e) => handleImport(e.target.files?.[0])}
         />
+
+        <button
+          className={`dashboard-tab-add${isLocked ? ' dashboard-tab-add-active' : ''}`}
+          onClick={toggleLockState}
+          disabled={!activeDashboardId}
+          data-tooltip={isLocked ? 'Unlock dashboard' : 'Lock dashboard'}
+        >
+          {isLocked ? <IconLock size={15} /> : <IconLockOpen2 size={15} />}
+        </button>
       </div>
 
       <ConfirmDialog

@@ -230,6 +230,57 @@ code {
   min-height: 0;
 }
 
+/* ── Onboarding banner ── */
+.onboarding-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: rgba(245,158,11,0.10);
+  border-bottom: 1px solid rgba(245,158,11,0.25);
+  flex-shrink: 0;
+}
+
+.onboarding-banner-icon {
+  color: var(--accent-warm);
+  flex-shrink: 0;
+}
+
+.onboarding-banner-text {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.onboarding-banner-text strong {
+  color: var(--text-primary);
+}
+.onboarding-banner-text code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--bg-hover);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+}
+
+.onboarding-banner-close {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+.onboarding-banner-close:hover {
+  background: rgba(245,158,11,0.2);
+  color: var(--accent-warm);
+}
+
 /* Content area — pages scroll inside it; floating panels overlay it */
 .page-container {
   position: relative;
@@ -2970,6 +3021,19 @@ html[data-theme="light"] {
   border-color: var(--border-strong);
   background: var(--bg-hover);
 }
+.dashboard-tab-add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Lock toggle, once a dashboard is locked: solid instead of dashed so it
+   reads as "on" at a glance, matching the filled/outline pin icon swap. */
+.dashboard-tab-add-active {
+  color: var(--accent-primary);
+  border-style: solid;
+  border-color: var(--accent-primary);
+  background: var(--bg-hover);
+}
 
 /* ── Widget canvas (react-grid-layout) ── */
 .widget-canvas {
@@ -3000,7 +3064,7 @@ html[data-theme="light"] {
   width: 100%;
   height: 100%;
   background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--accent-danger);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -3012,8 +3076,29 @@ html[data-theme="light"] {
   padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
   background: rgba(255,255,255,0.02);
-  cursor: move;
   flex-shrink: 0;
+  /* Locked hides the grip icon and the 32px .btn-icon menu button (see
+     WidgetFrame.jsx) — without a floor, the header's content height would
+     shrink from the button's 32px down to the title's own ~20px line
+     height when those are gone, and everything below it would jump up.
+     box-sizing is border-box (global reset), so this min-height is the
+     header's FULL box including its own padding — needs to be the
+     button's 32px content height *plus* the vertical padding
+     (2 × var(--space-2) = 16px) to actually match the unlocked box, not
+     just the button alone. */
+  min-height: calc(32px + 2 * var(--space-2));
+}
+
+/* The "move" cursor only belongs here when the header is actually a drag
+   handle — WidgetFrame.jsx only applies .widget-drag-handle when unlocked,
+   so this stays keyed off that class rather than off .widget-frame-locked
+   (the header itself is always mounted now; only its contents change). */
+.widget-frame-header.widget-drag-handle {
+  cursor: move;
+}
+
+.widget-frame-locked {
+  border-color: var(--border-subtle) !important;
 }
 
 .widget-drag-grip { color: var(--text-muted); flex-shrink: 0; }
