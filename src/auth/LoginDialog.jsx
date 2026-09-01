@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react'
 import useAppStore from '../store/useAppStore'
 import APP_CONFIG from '../config/app.config'
 import { ROLES } from '../config/roles.config'
+import { logAction } from '../audit/auditStore'
 import {
   listUsers, createUser, deleteUser,
   setActiveUserId, clearActiveUserId,
@@ -77,6 +78,9 @@ export default function LoginDialog() {
     applyUserPreferences(user)
     markLoginPrompted()
     setShowLoginDialog(false)
+    // Active user is already switched above, so this logs under the
+    // now-signed-in user, same as they'd expect to see themselves.
+    logAction({ action: 'signed_in', target: user.username })
     addToast({ type: 'success', message: `Welcome back, ${user.username}!` })
   }
 
@@ -97,6 +101,8 @@ export default function LoginDialog() {
       setCurrentUser(user)
       markLoginPrompted()
       setShowLoginDialog(false)
+      logAction({ action: 'user.created', target: user.username, meta: { role: user.role } })
+      logAction({ action: 'signed_in', target: user.username })
       addToast({
         type: 'success',
         message: user.role === 'admin'

@@ -16,7 +16,7 @@
 //   showInNav   set false to register the route without a sidebar link
 
 import { lazy } from 'react'
-import { IconHome, IconUsers, IconPalette, IconChartBar, IconMap } from '@tabler/icons-react'
+import { IconHome, IconUsers, IconPalette, IconChartBar, IconMap, IconHistory } from '@tabler/icons-react'
 
 const PAGES = [
   {
@@ -60,6 +60,14 @@ const PAGES = [
     icon: <IconUsers size={18} />,
     component: lazy(() => import('../pages/UsersPage')),
     permission: 'users.manage',
+    showInNav: true,
+  },
+  {
+    path: '/audit-log',
+    title: 'Audit Log',
+    icon: <IconHistory size={18} />,
+    component: lazy(() => import('../pages/AuditLogPage')),
+    permission: 'audit.view',
     showInNav: true,
   }
 ]

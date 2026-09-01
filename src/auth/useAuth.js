@@ -7,6 +7,7 @@ import useAppStore from '../store/useAppStore'
 import APP_CONFIG from '../config/app.config'
 import { ROLES, roleHasPermission } from '../config/roles.config'
 import { clearActiveUserId } from './userManager'
+import { logAction } from '../audit/auditStore'
 
 export default function useAuth() {
   const user = useAppStore((s) => s.currentUser)
@@ -22,11 +23,14 @@ export default function useAuth() {
   )
 
   const signOut = useCallback(() => {
+    // Log before clearing the active user id — logAction stamps whoever is
+    // currently active, so this must run while that's still the signer-outer.
+    if (user) logAction({ action: 'signed_out', target: user.username })
     clearActiveUserId()
     const store = useAppStore.getState()
     store.resetAppState()
     store.addToast({ type: 'info', message: 'Signed out' })
-  }, [])
+  }, [user])
 
   return {
     user,

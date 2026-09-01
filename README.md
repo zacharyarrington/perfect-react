@@ -53,6 +53,7 @@ src/
   dataSources/          ← data provider registry (mock, CSV import), Data Sources panel
   command/              ← command palette (Cmd/Ctrl+K) + its command registry
   notifications/        ← persistent notification store + NotificationBell
+  audit/                ← persistent audit/activity log store
   components/forms/     ← useForm, Field, validators (barrel: components/forms)
   panels/               ← FloatingPanel, PanelChrome, Dock (docking rail), panel components
   pages/                ← page components
@@ -220,6 +221,29 @@ import { pushNotification } from '../notifications/notificationStore'
 pushNotification({ title: 'Export finished', body: 'report.csv is ready', type: 'success' })
 ```
 
+## How to: audit log
+
+A permanent "who did what, when" record — distinct from both toasts (disappear in 4s) and notifications (dismissable bell feed, meant for the signed-in user themselves). Audit entries are never dismissed by a user; they're meant to be reviewed later by an admin on the **Audit Log** page (`/audit-log`, gated by `audit.view` — admins only via the `'*'` permission) and aren't removed except by that page's "Clear log" action or the oldest-entry cap (500).
+
+```js
+import { logAction } from '../audit/auditStore'
+
+logAction({ action: 'user.created', target: user.username, meta: { role: user.role } })
+logAction({ action: 'role.changed', target: user.username, meta: { from: 'viewer', to: 'admin' } })
+```
+
+- `action` — a short dot-namespaced string (`resource.verb`). Give it a label in `ACTION_LABELS` in `src/pages/AuditLogPage.jsx` so it renders as a colored badge instead of the raw key.
+- `target` — the human-readable subject of the action (a username, record name, etc.), shown as its own column.
+- `meta` — optional extra detail (e.g. `{ from, to }` for a change); `AuditLogPage.jsx`'s `describeMeta()` currently only renders `from`/`to` pairs — extend it if you log richer meta.
+
+`logAction` stamps the **currently active user** as the actor automatically — call it *before* clearing the active user (see `signOut` in `src/auth/useAuth.js`), not after, or the entry logs as `guest`. Built-in call sites to copy from: user create/role-change/delete in `src/pages/UsersPage.jsx`, sign-in in `src/auth/LoginDialog.jsx`, sign-out in `src/auth/useAuth.js`.
+
+> ⚠️ Like `userManager.js`, this is a local, client-side log (IndexedDB via localforage) — it lives on one device/browser and isn't shared across users or tamper-proof, so it's not sufficient as a real compliance/security audit trail. **To wire it up to a real backend later:**
+> 1. In `src/audit/auditStore.js`, make `log()` also `POST` the entry to your API (e.g. `fetch('/api/audit', { method: 'POST', body: JSON.stringify(entry) })`), fire-and-forget alongside the existing `localforage.setItem` write — keep the local write too, so the log stays populated offline and the UI stays instant.
+> 2. Point `load()` at a `GET` from that same endpoint instead of (or merged with) `localforage.getItem`, so `AuditLogPage` shows server-side history across devices, not just this browser's.
+> 3. Keep `logAction`'s call signature (`{ action, target, meta }`) stable — every call site in the app only depends on that shape, the same way `userManager.js`'s functions are meant to be swapped without touching call sites elsewhere.
+> 4. Server-side, prefer stamping the actor and timestamp from the authenticated request rather than trusting the client-sent `userId`/`ts` — the local version trusts them because there's no server to ask.
+
 ## How to: data tables — selection, bulk actions, CSV export
 
 ```jsx
@@ -266,6 +290,7 @@ Add new unit tests next to the store/module they cover; add new e2e specs to `te
 - **Keyboard shortcuts** — `Cmd/Ctrl+K` command palette, `Cmd/Ctrl+1…9` panels, `Cmd/Ctrl+\`` toggle all, `Esc` close all, `Cmd/Ctrl+B` sidebar, `Cmd/Ctrl+D` dock rail, `T` theme, `?` shortcut list.
 - **Command palette** — `Cmd/Ctrl+K`; see "How to: command palette" above.
 - **Notifications** — persistent bell dropdown, separate from toasts; see "How to: notifications" above.
+- **Audit log** — permanent activity record (`/audit-log`, admin-only), separate from both toasts and notifications; see "How to: audit log" above.
 - **Toasts** — `useAppStore.getState().addToast({ type: 'success'|'error'|'info'|'warning', message })`.
 - **Persistence** — theme, sidebar state, panel layout (including dock state), and dashboards auto-save per user (guests get a shared slot) and restore on load.
 - **Forms** — `useForm` + `Field.*` + `validators`; see "How to: forms & validation" above.
@@ -284,3 +309,4 @@ Add new unit tests next to the store/module they cover; add new e2e specs to `te
 5. Replace `HomePage.jsx`, add your pages/panels to the registries
 6. Delete `NotesPanel` / `ExamplePage` if you don't want the demos
 7. Clear or replace the seeded default dashboard (`initDashboardStorage` in `src/dashboards/dashboardStorage.js`) and the `mock` data source's demo datasets (`src/dataSources/mockProvider.js`) once you have real data
+8. If you need audit history to survive beyond one browser (or count as a real compliance trail), wire `src/audit/auditStore.js` up to a backend — see "How to: audit log" above

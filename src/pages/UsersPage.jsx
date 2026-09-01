@@ -9,6 +9,7 @@ import {
   listUsers, createUser, updateUser, deleteUser, AVATAR_COLORS,
 } from '../auth/userManager'
 import { pushNotification } from '../notifications/notificationStore'
+import { logAction } from '../audit/auditStore'
 import { PageHeader, DataTable, ConfirmDialog } from '../components/ui'
 import { useForm, Field, validators } from '../components/forms'
 import { IconPlus, IconTrash, IconUsers, IconX } from '@tabler/icons-react'
@@ -34,6 +35,7 @@ function AddUserForm({ existingNames, onCreated, onCancel }) {
     onSubmit: async (values) => {
       const user = await createUser(values)
       pushNotification({ title: 'User created', body: `${user.username} joined as ${ROLES[user.role].label}`, type: 'success' })
+      logAction({ action: 'user.created', target: user.username, meta: { role: user.role } })
       addToast({ type: 'success', message: `User "${user.username}" created` })
       onCreated()
     },
@@ -91,6 +93,7 @@ export default function UsersPage() {
     const updated = await updateUser(user.id, { role })
     if (currentUser?.id === user.id) setCurrentUser(updated)
     refresh()
+    logAction({ action: 'role.changed', target: user.username, meta: { from: ROLES[user.role]?.label || user.role, to: ROLES[role]?.label || role } })
     addToast({ type: 'success', message: `${user.username} is now ${ROLES[role]?.label || role}` })
   }
 
@@ -98,6 +101,7 @@ export default function UsersPage() {
     await deleteUser(user.id)
     setDeleteTarget(null)
     refresh()
+    logAction({ action: 'user.deleted', target: user.username })
     addToast({ type: 'info', message: `Deleted "${user.username}"` })
   }
 
@@ -107,6 +111,7 @@ export default function UsersPage() {
     await Promise.all(deletable.map((u) => deleteUser(u.id)))
     clearSelection()
     refresh()
+    deletable.forEach((u) => logAction({ action: 'user.deleted', target: u.username }))
     addToast({
       type: 'info',
       message: `Deleted ${deletable.length} user${deletable.length !== 1 ? 's' : ''}`
