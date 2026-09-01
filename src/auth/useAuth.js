@@ -5,13 +5,20 @@
 import { useCallback } from 'react'
 import useAppStore from '../store/useAppStore'
 import APP_CONFIG from '../config/app.config'
-import { ROLES, roleHasPermission } from '../config/roles.config'
+import useRolesStore, { roleHasPermission } from '../config/rolesStore'
 import { clearActiveUserId } from './userManager'
 import { logAction } from '../audit/auditStore'
 
 export default function useAuth() {
   const user = useAppStore((s) => s.currentUser)
   const setShowLoginDialog = useAppStore((s) => s.setShowLoginDialog)
+  // Subscribing to `roles` here (even though hasPermission reads the store
+  // fresh via getState() on every call, not this variable) is what makes any
+  // component calling useAuth() re-render after a role is edited/added/
+  // deleted — without it, a component that only reads `hasPermission` back
+  // out would keep evaluating against whatever roles existed when it first
+  // rendered, since a useCallback's identity alone doesn't force a re-render.
+  const roles = useRolesStore((s) => s.roles)
 
   const isGuest = !user
   // Guests act with the configured guest role (or none when guests are disabled)
@@ -35,7 +42,7 @@ export default function useAuth() {
   return {
     user,
     role,
-    roleLabel: ROLES[role]?.label || 'Guest',
+    roleLabel: roles[role]?.label || 'Guest',
     isGuest,
     isAdmin: role === 'admin',
     hasPermission,

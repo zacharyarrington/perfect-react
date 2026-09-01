@@ -9,6 +9,8 @@ import APP_CONFIG from '../config/app.config'
 import PAGES from '../config/pages.config'
 import PANELS from '../config/panels.config'
 import UserBadge from './UserBadge'
+import SaveStatusIndicator from './SaveStatusIndicator'
+import Breadcrumbs from './Breadcrumbs'
 import NotificationBell from '../notifications/NotificationBell'
 import {
   IconSun, IconMoon, IconSunMoon, IconMenu2, IconX, IconSearch,
@@ -27,7 +29,6 @@ export default function TopBar() {
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const currentPage = PAGES.find((p) => p.path === location.pathname)
   const visiblePanels = PANELS.filter((p) => p.showToggle && hasPermission(p.permission))
   const visiblePages  = PAGES.filter((p) => p.showInNav && hasPermission(p.permission))
 
@@ -45,9 +46,11 @@ export default function TopBar() {
 
         <div className="topbar-divider" />
 
-        {/* Current page title */}
+        {/* Breadcrumb trail (page title, plus a resolved name for routes
+            like /dashboard/:dashboardId whose title alone can't say which) */}
         <div className="topbar-actions">
-          <span className="topbar-page-title">{currentPage?.title || ''}</span>
+          <Breadcrumbs />
+          <SaveStatusIndicator />
         </div>
 
         {/* Command palette trigger */}

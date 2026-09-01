@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from 'react'
 import useAppStore from '../store/useAppStore'
 import APP_CONFIG from '../config/app.config'
-import { ROLES } from '../config/roles.config'
+import useRolesStore from '../config/rolesStore'
 import { logAction } from '../audit/auditStore'
 import {
   listUsers, createUser, deleteUser,
@@ -25,6 +25,7 @@ function getInitials(name = '') {
 
 export default function LoginDialog() {
   const { setCurrentUser, setShowLoginDialog, addToast } = useAppStore()
+  const roles = useRolesStore((s) => s.roles)
 
   const [users, setUsers]                 = useState([])
   const [mode, setMode]                   = useState('loading')  // loading | list | create
@@ -197,7 +198,7 @@ export default function LoginDialog() {
                         <div className="login-profile-info">
                           <span className="login-profile-name">{user.username}</span>
                           <span className="login-profile-date">
-                            {ROLES[user.role]?.label || user.role}
+                            {roles[user.role]?.label || user.role}
                           </span>
                         </div>
                         <IconCheck size={16} className="login-profile-check" />
@@ -260,8 +261,8 @@ export default function LoginDialog() {
                 {username ? getInitials(username) : <IconUser size={20} />}
               </div>
               <span className="login-preview-name">{username || 'Your Name'}</span>
-              <span className={`badge ${ROLES[users.length === 0 ? 'admin' : APP_CONFIG.defaultRole]?.badge || ''}`} style={{ marginLeft: 'auto' }}>
-                {ROLES[users.length === 0 ? 'admin' : APP_CONFIG.defaultRole]?.label}
+              <span className={`badge ${roles[users.length === 0 ? 'admin' : APP_CONFIG.defaultRole]?.badge || ''}`} style={{ marginLeft: 'auto' }}>
+                {roles[users.length === 0 ? 'admin' : APP_CONFIG.defaultRole]?.label}
               </span>
             </div>
 

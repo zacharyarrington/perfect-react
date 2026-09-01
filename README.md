@@ -31,7 +31,7 @@ Deployable as-is to Netlify (`netlify.toml` includes the SPA redirect) or any st
 
 On first visit you're prompted to create a user — **the first user automatically becomes Administrator**. Users created after that (from the login dialog) get the `defaultRole` from `app.config`; admins can promote them on the **Users** page. Guest access is on by default (`allowGuest`) with the `viewer` role.
 
-> ⚠️ Auth is a local, client-side stand-in (IndexedDB) meant for internal tools and prototypes — there are no passwords and anyone with the URL can create a user. To use real auth later, swap the implementations in `src/auth/userManager.js` (keep the signatures) — the rest of the app only talks to `useAuth()` and `userManager`.
+> ⚠️ Auth is a local, client-side stand-in (IndexedDB) meant for internal tools and prototypes — there are no passwords and anyone with the URL can create a user. See "How to: wire up a real backend for users & roles" below when you're ready to move off it — it's a genuine swap-in, not a rewrite.
 
 ## Where everything lives
 
@@ -41,7 +41,8 @@ src/
     app.config.jsx      ← name, logo, theme, guest access   (start here)
     pages.config.jsx    ← page registry (routes + sidebar nav)
     panels.config.jsx   ← floating panel registry
-    roles.config.js     ← roles & permissions
+    roles.config.js     ← default roles & permissions (seed values for a fresh install)
+    rolesStore.js       ← runtime-editable roles (localforage overlay on roles.config.js)
   auth/                 ← userManager, useAuth, RequirePermission, LoginDialog
   components/
     ui/                 ← Modal, Tabs, DataTable, StatCard, ProgressBar, … (barrel: components/ui)
@@ -102,15 +103,17 @@ Every panel is dockable by default. A "Dock" button in its header moves it into 
 
 ## How to: roles & permissions
 
-Permissions are plain strings. Define who gets what in `src/config/roles.config.js`:
+Permissions are plain strings. `src/config/roles.config.js` defines the **default** roles a fresh install ships with:
 
 ```js
-export const ROLES = {
+export const DEFAULT_ROLES = {
   admin:  { label: 'Administrator', badge: 'badge-red',   permissions: ['*'] },
   editor: { label: 'Editor',        badge: 'badge-blue',  permissions: ['content.edit', 'panels.notes'] },
   viewer: { label: 'Viewer',        badge: 'badge-green', permissions: ['panels.notes'] },
 }
 ```
+
+That file is seed data, not the live source of truth — **`src/config/rolesStore.js`** is: a localforage-backed store that starts from `DEFAULT_ROLES` and overlays any roles created/edited/deleted at runtime through the **Roles editor** on the **Users** page (admin-only, next to user management). Create a role, name it, pick a badge color, and check off which permissions it grants from an auto-discovered checklist — every `permission:` string declared on a `pages.config.jsx`/`panels.config.jsx` entry shows up there automatically (add a string to `EXTRA_PERMISSIONS` in `roles.config.js` if you gate something with `<RequirePermission>` that isn't tied to a registry entry). The built-in `admin` role can't be deleted (there must always be a way back in); any role still assigned to a user can't be deleted until it's reassigned.
 
 Gate anything three ways:
 
@@ -125,7 +128,20 @@ const { hasPermission, isAdmin, user } = useAuth()
 if (hasPermission('content.edit')) { … }
 ```
 
-The **Users** page (admin-only) manages accounts and role assignment; it refuses to demote the last admin or delete yourself.
+All three read live from `rolesStore.js`, so editing a role's permissions in the Roles editor takes effect immediately for every signed-in session watching that role — no reload needed. If you need the current roles map outside a component (a non-hook module, like `userManager.js` does), read `useRolesStore.getState().roles` directly instead of importing `DEFAULT_ROLES`.
+
+The **Users** page (admin-only) manages accounts and role assignment; it refuses to demote the last admin or delete yourself. Role/permission changes are recorded in the [audit log](#how-to-audit-log) (`role.created`/`role.updated`/`role.deleted`).
+
+## How to: wire up a real backend for users & roles
+
+Everything above works fully client-side — no server, no signup, IndexedDB only. That's by design for getting started, but it isn't meant to be the permanent story: **swapping in your own user/auth API is a real, supported path**, not an afterthought bolted on later. Every consumer (`useAuth.js`, `LoginDialog.jsx`, `UsersPage.jsx`, `RolesEditor.jsx`, `UserBadge.jsx`) talks to two modules only — `src/auth/userManager.js` and `src/config/rolesStore.js` — through their exported functions, never to `localforage`/`localStorage` directly. That indirection is the entire integration surface: replace what's inside those two files and nothing else in the app needs to change.
+
+Two commented-out reference implementations show exactly what to fill in, same pattern as `dataSources/apiProvider.example.js`:
+
+- **`src/auth/userManager.example.api.js`** — copy it over `userManager.js`, point `authedFetch` at your API. Read its header comment first: it splits "user directory" (a normal REST CRUD resource) from "session" (verifying who's making the request) — the local version's session check is just a client-editable `localStorage` id, which is fine for a local prototype and **not** fine once real user data is behind it. A real backend must verify the caller server-side (a session cookie or bearer token your auth provider issued), never trust a user id the client sends.
+- **`src/config/rolesStore.example.api.js`** — copy it over `rolesStore.js`, same idea for role/permission data. `PERMISSION_CATALOG` (auto-discovered from `pages.config.jsx`/`panels.config.jsx`) stays computed locally either way — that part has nothing to do with your backend.
+
+Things that don't change: `PERMISSION_CATALOG`'s discovery logic, the `DEFAULT_ROLES` fallback (keep it as the store's initial state even with a real API — it's what renders before the first fetch resolves and what the app falls back to during a network blip, so a permission check is never looking at nothing), and every UI component. Things that do: every call becomes a real network request, so add loading states and handle failure where the local version's near-instant IndexedDB resolution let the UI skip that (see each example file's header for exactly which call sites need it) — and move every authorization decision that actually matters (demote-the-last-admin, delete-a-role-still-in-use, role assignment) to be enforced server-side too. The client-side checks already in `UsersPage.jsx`/`RolesEditor.jsx` are UX niceties that prevent accidental clicks; they are not a security boundary once a real API is listening.
 
 ## How to: use the map component
 
@@ -264,6 +280,23 @@ logAction({ action: 'role.changed', target: user.username, meta: { from: 'viewer
 
 `priority: 'low'` on a column hides it below 640px instead of forcing the table into horizontal scroll — the Users page uses this for its "Created" column.
 
+## How to: loading skeletons
+
+```jsx
+import { Skeleton } from '../components/ui'
+
+<Skeleton.Stat />                    // shape of a StatCard
+<Skeleton.Chart height={220} />      // shape of a Bar/Line/Donut chart
+<Skeleton.Table rows={4} cols={4} /> // shape of a DataTable
+<Skeleton.Text lines={3} />          // a paragraph of varying-width lines
+<Skeleton.Page />                    // a full page: header block + one card
+<Skeleton width={80} height={30} />  // one custom-sized block
+```
+
+Used two ways in the shell already: `App.jsx`'s route `<Suspense fallback={<Skeleton.Page />}>` (so switching pages shows a page-shaped placeholder instead of a blank flash while its lazy chunk loads), and each widget type's own loading branch in `src/widgets/types/` (`StatWidget`/`ChartWidget`/`TableWidget`). If you add a new widget type or page-like view with its own loading state, reach for `Skeleton` before a plain "Loading…" string — it reads as "content is about to appear" rather than a stall.
+
+One rule worth keeping if you copy the widget pattern: gate the skeleton on **first load only** (no data yet), not on `loading` alone. `useWidgetData.js` sets `loading: true` on every refetch — including a background poll tick on an already-loaded widget, where the previous rows/value are still sitting there, still valid. Re-skeletonizing on every one of those would blank out perfectly good stale data on a timer instead of quietly updating in place — see any of the three widget types' `if (loading && rows.length === 0)` (or `value == null` for Stat) guard for the pattern.
+
 ## How to: testing
 
 **Unit tests** (Vitest, no browser) cover store logic — actions, selectors, and persistence merge behavior — by calling `useAppStore.getState()` / `useAppStore.setState()` directly; nothing needs to render. Colocate a new test file next to the module it covers: `src/store/useAppStore.<topic>.test.js`.
@@ -287,12 +320,15 @@ Add new unit tests next to the store/module they cover; add new e2e specs to `te
 
 - **Theme** — dark / light / auto (follows OS), cycled from the top bar or `T`. All colors are CSS variables in `styles/index.css`; retheme by editing `:root` / `html[data-theme="light"]`.
 - **Sidebar** — nav from the page registry + panel toggles; collapses to an icon rail (`Cmd/Ctrl+B`); hidden on mobile (hamburger menu takes over).
+- **Breadcrumbs** — top-bar "where am I" trail (`src/components/Breadcrumbs.jsx`), resolved from `pages.config.jsx` via route matching (not string equality, so it works on dynamic routes). A route's dynamic param can resolve to an extra trailing crumb — currently wired for `/dashboard/:dashboardId` → the dashboard's real name; see the component's comment for how to add another.
+- **Loading skeletons** — `import { Skeleton } from '../components/ui'`. `Skeleton.Page` is the page-route Suspense fallback (`App.jsx`); `Skeleton.Stat`/`.Chart`/`.Table` back the matching widget types' first-load state in `src/widgets/types/` — gated on "loading AND no data yet" so a background refresh/poll tick never blanks out still-valid stale data, only an actual first load with nothing to show yet.
 - **Keyboard shortcuts** — `Cmd/Ctrl+K` command palette, `Cmd/Ctrl+1…9` panels, `Cmd/Ctrl+\`` toggle all, `Esc` close all, `Cmd/Ctrl+B` sidebar, `Cmd/Ctrl+D` dock rail, `T` theme, `?` shortcut list.
 - **Command palette** — `Cmd/Ctrl+K`; see "How to: command palette" above.
 - **Notifications** — persistent bell dropdown, separate from toasts; see "How to: notifications" above.
 - **Audit log** — permanent activity record (`/audit-log`, admin-only), separate from both toasts and notifications; see "How to: audit log" above.
 - **Toasts** — `useAppStore.getState().addToast({ type: 'success'|'error'|'info'|'warning', message })`.
 - **Persistence** — theme, sidebar state, panel layout (including dock state), and dashboards auto-save per user (guests get a shared slot) and restore on load.
+- **Save status** — a small "Saving…/Saved" readout next to the page title in the top bar, fed by every auto-save pipeline above. Report into it from your own persistence code via `useAppStore.getState().reportSaving()/.reportSaved()/.reportSaveError()` — see `src/components/SaveStatusIndicator.jsx`.
 - **Forms** — `useForm` + `Field.*` + `validators`; see "How to: forms & validation" above.
 - **UI component library** — `import { Modal, ConfirmDialog, Tabs, Collapsible, ProgressBar, SearchInput, DataTable, StatCard, PageHeader, EmptyState } from '../components/ui'`. DataTable is sortable/searchable/paginated, with optional row selection, bulk actions, and CSV export.
 - **UI Kit page** — a living gallery of everything above, organized in tabs (Basics / Components / Forms / Charts).
@@ -305,7 +341,7 @@ Add new unit tests next to the store/module they cover; add new e2e specs to `te
 1. `src/config/app.config.jsx` — name, tagline, logo, theme, guest policy
 2. `index.html` — `<title>` + meta description; `public/favicon.svg`
 3. `package.json` — `name`, `version`
-4. `src/config/roles.config.js` — your roles/permissions
+4. `src/config/roles.config.js` — your default roles/permissions (or just create/edit roles later via the Users page's Roles editor — no redeploy needed for that)
 5. Replace `HomePage.jsx`, add your pages/panels to the registries
 6. Delete `NotesPanel` / `ExamplePage` if you don't want the demos
 7. Clear or replace the seeded default dashboard (`initDashboardStorage` in `src/dashboards/dashboardStorage.js`) and the `mock` data source's demo datasets (`src/dataSources/mockProvider.js`) once you have real data

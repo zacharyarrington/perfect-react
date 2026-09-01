@@ -13,6 +13,9 @@ const ACTION_LABELS = {
   'user.created':   { label: 'User created',   badge: 'badge-green' },
   'user.deleted':   { label: 'User deleted',   badge: 'badge-red' },
   'role.changed':   { label: 'Role changed',   badge: 'badge-blue' },
+  'role.created':   { label: 'Role created',   badge: 'badge-green' },
+  'role.updated':   { label: 'Role updated',   badge: 'badge-blue' },
+  'role.deleted':   { label: 'Role deleted',   badge: 'badge-red' },
   'signed_in':      { label: 'Signed in',      badge: 'badge-teal' },
   'signed_out':     { label: 'Signed out',     badge: '' },
 }

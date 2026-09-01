@@ -5,14 +5,22 @@
 // internal tools and prototypes. To wire up a real provider later (Clerk,
 // Supabase, your own API), keep this module's function signatures and swap
 // the implementations — the rest of the app only talks to useAuth/userManager.
+//
+// preferences/layout writes mirror synchronously to localStorage, same
+// pattern as dashboardStorage.js/usePersistence.js: localforage (IndexedDB)
+// writes are async, so a pagehide/reload inside that window can silently
+// drop the change (reproduced there — see PREFS_SYNC_KEY usage below and
+// that file's comment for the full writeup). getActiveUser() prefers
+// whichever of the mirror vs. the localforage copy is actually newer.
 
 import localforage from 'localforage'
 import APP_CONFIG from '../config/app.config'
-import { ROLES } from '../config/roles.config'
+import useRolesStore from '../config/rolesStore'
 
 const USERS_KEY       = 'appshell_users'
 const ACTIVE_USER_KEY = 'appshell_active_user'
 const PROMPTED_KEY    = 'appshell_login_prompted'
+const PREFS_SYNC_KEY  = 'appshell_user_prefs_sync' // per-user localStorage durability mirror
 
 export const AVATAR_COLORS = [
   '#00d4c8', '#0099ff', '#7c3aed', '#f59e0b',
@@ -72,7 +80,7 @@ export async function updateUser(id, updates) {
   return withUsersLock(async () => {
     const data = await localforage.getItem(USERS_KEY) || {}
     if (!data[id]) throw new Error('User not found')
-    if (updates.role && !ROLES[updates.role]) throw new Error(`Unknown role "${updates.role}"`)
+    if (updates.role && !useRolesStore.getState().roles[updates.role]) throw new Error(`Unknown role "${updates.role}"`)
     data[id] = { ...data[id], ...updates, updatedAt: new Date().toISOString() }
     await localforage.setItem(USERS_KEY, data)
     return data[id]
@@ -90,25 +98,36 @@ export async function deleteUser(id) {
 
 // ── Preferences & layout ─────────────────────────────────────────────────────
 
+/** Synchronous mirror write — best-effort, never throws (private mode / quota can reject it). */
+function mirrorPrefsToLocalStorageSync(id, preferences, layout, savedAt) {
+  try {
+    localStorage.setItem(`${PREFS_SYNC_KEY}_${id}`, JSON.stringify({ preferences, layout, savedAt }))
+  } catch {
+    // best-effort only; localforage remains the source of truth when this fails
+  }
+}
+
 export async function saveUserPreferences(id, preferences) {
+  const savedAt = Date.now()
   return withUsersLock(async () => {
     const data = await localforage.getItem(USERS_KEY) || {}
     if (!data[id]) return
-    data[id] = {
-      ...data[id],
-      preferences: { ...(data[id].preferences || {}), ...preferences },
-      updatedAt: new Date().toISOString(),
-    }
+    const merged = { ...(data[id].preferences || {}), ...preferences }
+    data[id] = { ...data[id], preferences: merged, updatedAt: new Date(savedAt).toISOString() }
+    mirrorPrefsToLocalStorageSync(id, merged, data[id].layout, savedAt)
     await localforage.setItem(USERS_KEY, data)
     return data[id]
   })
 }
 
 export async function saveUserLayout(id, panels) {
+  const savedAt = Date.now()
   return withUsersLock(async () => {
     const data = await localforage.getItem(USERS_KEY) || {}
     if (!data[id]) return
-    data[id] = { ...data[id], layout: { panels }, updatedAt: new Date().toISOString() }
+    const layout = { panels }
+    data[id] = { ...data[id], layout, updatedAt: new Date(savedAt).toISOString() }
+    mirrorPrefsToLocalStorageSync(id, data[id].preferences, layout, savedAt)
     await localforage.setItem(USERS_KEY, data)
     return data[id]
   })
@@ -133,7 +152,27 @@ export async function getActiveUser() {
   const id = getActiveUserId()
   if (!id) return null
   const data = await localforage.getItem(USERS_KEY) || {}
-  return data[id] || null
+  const user = data[id] || null
+  if (!user) return null
+
+  // The localStorage mirror can be ahead of the localforage copy if a
+  // previous tab closed/reloaded before its debounced preferences/layout
+  // write landed — prefer the mirror when it's actually newer, not just
+  // present (a stale-but-non-empty mirror from an older session must still
+  // lose to what's actually in localforage).
+  let mirror = null
+  try {
+    const raw = localStorage.getItem(`${PREFS_SYNC_KEY}_${id}`)
+    if (raw) mirror = JSON.parse(raw)
+  } catch {
+    // corrupt/unavailable mirror — fall back to the localforage copy
+  }
+
+  const storedAt = user.updatedAt ? new Date(user.updatedAt).getTime() : 0
+  if (mirror && (mirror.savedAt || 0) > storedAt) {
+    return { ...user, preferences: mirror.preferences ?? user.preferences, layout: mirror.layout ?? user.layout }
+  }
+  return user
 }
 
 // ── First-visit tracking ─────────────────────────────────────────────────────

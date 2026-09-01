@@ -5,8 +5,9 @@ import BarChart from '../../components/charts/BarChart'
 import LineChart from '../../components/charts/LineChart'
 import DonutChart from '../../components/charts/DonutChart'
 import EmptyState from '../../components/ui/EmptyState'
+import Skeleton from '../../components/ui/Skeleton'
 import useWidgetData from '../useWidgetData'
-import { IconDatabaseOff, IconAlertTriangle, IconChartBar } from '@tabler/icons-react'
+import { IconDatabaseOff, IconAlertTriangle } from '@tabler/icons-react'
 
 export default function ChartWidget({ instance }) {
   const { binding, config } = instance
@@ -32,8 +33,12 @@ export default function ChartWidget({ instance }) {
     return <EmptyState icon={<IconAlertTriangle size={26} />} title="Couldn't load data" desc={error.message} />
   }
 
-  if (loading) {
-    return <EmptyState icon={<IconChartBar size={26} />} title="Loading…" />
+  // Full skeleton only on first load — a refresh/poll tick also sets loading
+  // true but keeps the previous rows in place (see useWidgetData.js), so
+  // re-skeletonizing then would blank a perfectly good chart on every
+  // refreshInterval tick instead of quietly updating in place.
+  if (loading && rows.length === 0) {
+    return <Skeleton.Chart height={220} />
   }
 
   if (isDonut) {

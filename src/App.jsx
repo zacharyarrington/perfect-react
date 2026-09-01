@@ -18,11 +18,13 @@ import NotFoundPage from './pages/NotFoundPage'
 import CommandPalette from './command/CommandPalette'
 import ShellErrorBoundary from './components/ShellErrorBoundary'
 import OnboardingBanner from './components/OnboardingBanner'
+import Skeleton from './components/ui/Skeleton'
 
 import useAppStore from './store/useAppStore'
 import usePersistence from './store/usePersistence'
 import { isFirstLoginPrompt, getActiveUserId } from './auth/userManager'
 import { initDashboardStorage } from './dashboards/dashboardStorage'
+import useRolesStore from './config/rolesStore'
 
 // Panel keys that get Cmd/Ctrl+1…9 shortcuts, in registry order
 const SHORTCUT_PANEL_KEYS = PANELS.filter((p) => p.showToggle).slice(0, 9).map((p) => p.key)
@@ -30,6 +32,14 @@ const SHORTCUT_PANEL_KEYS = PANELS.filter((p) => p.showToggle).slice(0, 9).map((
 // Module-level guard so StrictMode's double effect-run in dev can't
 // double-seed a default dashboard.
 let dashboardStorageInitRan = false
+
+// Kick off the roles-store load immediately at module scope, not inside an
+// effect — permission checks (RequirePermission, sidebar/panel nav
+// filtering) can run on the very first render, before App's effects fire.
+// useRolesStore's initial state is already DEFAULT_ROLES (see rolesStore.js
+// header) so nothing is under-permissioned in the gap before this resolves;
+// this just brings in persisted overrides as soon as possible.
+useRolesStore.getState().load()
 
 export default function App() {
   usePersistence()
@@ -175,7 +185,7 @@ export default function App() {
           <Sidebar />
           <main ref={contentRef} className="page-container">
             <div className="page-scroll">
-              <Suspense fallback={null}>
+              <Suspense fallback={<Skeleton.Page />}>
                 <Routes>
                   {PAGES.map((page) => {
                     const Page = page.component

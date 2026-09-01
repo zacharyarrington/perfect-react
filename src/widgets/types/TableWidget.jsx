@@ -4,6 +4,7 @@
 
 import DataTable from '../../components/ui/DataTable'
 import EmptyState from '../../components/ui/EmptyState'
+import Skeleton from '../../components/ui/Skeleton'
 import useWidgetData from '../useWidgetData'
 import { IconDatabaseOff, IconAlertTriangle } from '@tabler/icons-react'
 
@@ -25,6 +26,14 @@ export default function TableWidget({ instance }) {
     return <EmptyState icon={<IconAlertTriangle size={26} />} title="Couldn't load data" desc={error.message} />
   }
 
+  // Full skeleton only on first load — a refresh/poll tick also sets loading
+  // true but keeps the previous rows in place (see useWidgetData.js), so
+  // re-skeletonizing then would blank a perfectly good table on every
+  // refreshInterval tick instead of quietly updating in place.
+  if (loading && rows.length === 0) {
+    return <Skeleton.Table rows={4} cols={4} />
+  }
+
   const activeFields = binding.columns?.length
     ? fields.filter((f) => binding.columns.includes(f.key))
     : fields
@@ -34,7 +43,7 @@ export default function TableWidget({ instance }) {
       columns={activeFields.map((f) => ({ key: f.key, label: f.label, sortable: true }))}
       rows={rows}
       searchable={config?.searchable}
-      emptyTitle={loading ? 'Loading…' : 'No rows'}
+      emptyTitle="No rows"
     />
   )
 }

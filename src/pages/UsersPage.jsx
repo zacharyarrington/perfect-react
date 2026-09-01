@@ -4,7 +4,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import useAppStore from '../store/useAppStore'
-import { ROLES } from '../config/roles.config'
+import useRolesStore from '../config/rolesStore'
+import RolesEditor from './RolesEditor'
 import {
   listUsers, createUser, updateUser, deleteUser, AVATAR_COLORS,
 } from '../auth/userManager'
@@ -18,10 +19,9 @@ function getInitials(name = '') {
   return name.trim().slice(0, 2).toUpperCase() || '?'
 }
 
-const ROLE_OPTIONS = Object.entries(ROLES).map(([value, r]) => ({ value, label: r.label }))
-
-function AddUserForm({ existingNames, onCreated, onCancel }) {
+function AddUserForm({ roles, existingNames, onCreated, onCancel }) {
   const addToast = useAppStore((s) => s.addToast)
+  const roleOptions = Object.entries(roles).map(([value, r]) => ({ value, label: r.label }))
 
   const form = useForm({
     initialValues: { username: '', role: 'viewer', color: AVATAR_COLORS[0] },
@@ -34,7 +34,7 @@ function AddUserForm({ existingNames, onCreated, onCancel }) {
     }),
     onSubmit: async (values) => {
       const user = await createUser(values)
-      pushNotification({ title: 'User created', body: `${user.username} joined as ${ROLES[user.role].label}`, type: 'success' })
+      pushNotification({ title: 'User created', body: `${user.username} joined as ${roles[user.role].label}`, type: 'success' })
       logAction({ action: 'user.created', target: user.username, meta: { role: user.role } })
       addToast({ type: 'success', message: `User "${user.username}" created` })
       onCreated()
@@ -52,7 +52,7 @@ function AddUserForm({ existingNames, onCreated, onCancel }) {
         />
       </div>
       <div style={{ width: 160 }}>
-        <Field.Select {...form.field('role')} options={ROLE_OPTIONS} />
+        <Field.Select {...form.field('role')} options={roleOptions} />
       </div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
         {AVATAR_COLORS.slice(0, 4).map((c) => (
@@ -76,6 +76,7 @@ function AddUserForm({ existingNames, onCreated, onCancel }) {
 
 export default function UsersPage() {
   const { currentUser, setCurrentUser, addToast } = useAppStore()
+  const roles = useRolesStore((s) => s.roles)
   const [users, setUsers] = useState([])
   const [showAdd, setShowAdd] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -93,8 +94,8 @@ export default function UsersPage() {
     const updated = await updateUser(user.id, { role })
     if (currentUser?.id === user.id) setCurrentUser(updated)
     refresh()
-    logAction({ action: 'role.changed', target: user.username, meta: { from: ROLES[user.role]?.label || user.role, to: ROLES[role]?.label || role } })
-    addToast({ type: 'success', message: `${user.username} is now ${ROLES[role]?.label || role}` })
+    logAction({ action: 'role.changed', target: user.username, meta: { from: roles[user.role]?.label || user.role, to: roles[role]?.label || role } })
+    addToast({ type: 'success', message: `${user.username} is now ${roles[role]?.label || role}` })
   }
 
   const handleDelete = async (user) => {
@@ -123,7 +124,7 @@ export default function UsersPage() {
     <div className="page">
       <PageHeader
         title="Users"
-        subtitle={<>Manage who can use this app and what they can do. Roles and permissions are defined in <code>src/config/roles.config.js</code>.</>}
+        subtitle="Manage who can use this app, and what each role can do."
       />
 
       <div className="card">
@@ -140,6 +141,7 @@ export default function UsersPage() {
 
         {showAdd && (
           <AddUserForm
+            roles={roles}
             existingNames={users.map((u) => u.username.toLowerCase())}
             onCreated={() => { setShowAdd(false); refresh() }}
             onCancel={() => setShowAdd(false)}
@@ -175,7 +177,7 @@ export default function UsersPage() {
             },
             {
               key: 'role', label: 'Role',
-              csvValue: (user) => ROLES[user.role]?.label || user.role,
+              csvValue: (user) => roles[user.role]?.label || user.role,
               render: (user) => (
                 <select
                   className="select input-sm"
@@ -183,7 +185,7 @@ export default function UsersPage() {
                   value={user.role}
                   onChange={(e) => handleRoleChange(user, e.target.value)}
                 >
-                  {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  {Object.entries(roles).map(([value, r]) => <option key={value} value={value}>{r.label}</option>)}
                 </select>
               ),
             },
@@ -211,24 +213,7 @@ export default function UsersPage() {
       </div>
 
       <div className="card">
-        <div className="card-title">Roles</div>
-        <div className="data-table-wrapper" style={{ marginTop: 8 }}>
-          <table className="data-table">
-            <thead>
-              <tr><th>Role</th><th>Permissions</th></tr>
-            </thead>
-            <tbody>
-              {Object.entries(ROLES).map(([key, r]) => (
-                <tr key={key}>
-                  <td><span className={`badge ${r.badge}`}>{r.label}</span></td>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
-                    {r.permissions.join(', ')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <RolesEditor users={users} />
       </div>
 
       <ConfirmDialog

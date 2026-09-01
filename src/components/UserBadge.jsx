@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from 'react'
 import useAppStore from '../store/useAppStore'
 import useAuth from '../auth/useAuth'
-import { ROLES } from '../config/roles.config'
+import useRolesStore from '../config/rolesStore'
 import {
   IconUserCircle, IconLogout, IconUsers, IconSettings, IconKeyboard,
 } from '@tabler/icons-react'
@@ -20,6 +20,7 @@ function getFirstName(name = '') {
 export default function UserBadge() {
   const { togglePanel, setShowLoginDialog } = useAppStore()
   const { user, roleLabel, signOut } = useAuth()
+  const roles = useRolesStore((s) => s.roles)
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -75,7 +76,7 @@ export default function UserBadge() {
             <div>
               <div className="profile-dropdown-name">{user.username}</div>
               <div className="profile-dropdown-sub">
-                <span className={`badge ${ROLES[user.role]?.badge || ''}`}>{roleLabel}</span>
+                <span className={`badge ${roles[user.role]?.badge || ''}`}>{roleLabel}</span>
               </div>
             </div>
           </div>

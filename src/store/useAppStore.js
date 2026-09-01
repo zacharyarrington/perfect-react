@@ -203,6 +203,19 @@ const useAppStore = create(
     loadingMessage: '',
     setLoading: (loading, message = '') => set({ isLoading: loading, loadingMessage: message }),
 
+    // ── Save status ──────────────────────────────────────────
+    // One indicator fed by every auto-save pipeline (panels/theme/dock via
+    // usePersistence.js, dashboards via dashboardStorage.js, signed-in user
+    // preferences/layout via userManager.js) — callers report into this
+    // rather than each pipeline growing its own UI. 'error' means a write
+    // actually rejected (quota, private-mode IndexedDB restrictions, etc.),
+    // surfaced instead of the historical silent `.catch(() => {})`.
+    saveState: 'idle',   // 'idle' | 'saving' | 'saved' | 'error'
+    lastSavedAt: null,
+    reportSaving: () => set({ saveState: 'saving' }),
+    reportSaved: () => set({ saveState: 'saved', lastSavedAt: Date.now() }),
+    reportSaveError: () => set({ saveState: 'error' }),
+
     toasts: [],
     addToast: (toast) => {
       const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`

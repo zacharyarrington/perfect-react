@@ -527,6 +527,90 @@ code {
   white-space: nowrap;
 }
 
+/* ── Breadcrumbs ── */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.breadcrumb-sep {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.breadcrumb-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.breadcrumb-link:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+.breadcrumb-current {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* On narrow screens, keep only the last crumb visible (the most specific
+   one) rather than truncating the whole trail into an unreadable ellipsis
+   mid-string — every crumb before it collapses, separator included. */
+@media (max-width: 640px) {
+  .breadcrumb-item:not(:last-child) {
+    display: none;
+  }
+}
+
+/* ── Save status ── */
+.save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  flex-shrink: 0;
+  animation: save-status-in 0.15s ease-out;
+}
+.save-status-label {
+  white-space: nowrap;
+}
+.save-status-saving  { color: var(--text-muted); }
+.save-status-saving .tabler-icon { animation: save-status-pulse 1.4s ease-in-out infinite; }
+.save-status-saved   { color: var(--accent-success); }
+.save-status-error   { color: var(--accent-danger); }
+
+@keyframes save-status-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes save-status-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+
+@media (max-width: 640px) {
+  .save-status-label { display: none; }
+}
+
 .topbar-right {
   display: flex;
   align-items: center;
@@ -1292,6 +1376,41 @@ code {
   background: rgba(0,212,200,0.10);
 }
 
+/* ── Skeletons ── */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--bg-hover), transparent);
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+.skeleton-bar {
+  align-self: flex-end;
+}
+.skeleton-page {
+  animation: skeleton-page-in 0.15s ease-out;
+}
+
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
+}
+@keyframes skeleton-page-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+}
+
 /* ── Empty states ── */
 .empty-state {
   display: flex;
@@ -1770,6 +1889,56 @@ code {
 .login-color-swatch.selected {
   border-color: var(--text-primary);
   box-shadow: 0 0 0 3px rgba(255,255,255,0.15);
+}
+
+/* ── Roles editor ── */
+.role-badge-swatch {
+  border: 2px solid transparent;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: all var(--duration-fast);
+}
+.role-badge-swatch:hover {
+  opacity: 0.85;
+}
+.role-badge-swatch.selected {
+  opacity: 1;
+  border-color: currentColor;
+}
+
+.role-permission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 8px;
+  padding: var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.role-permission-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  padding: 4px 2px;
+  cursor: pointer;
+}
+.role-permission-row code {
+  font-size: var(--text-xs);
+}
+.role-permission-wildcard {
+  margin-top: 6px;
+  padding: var(--space-2);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.role-permission-wildcard code {
+  font-size: var(--text-xs);
 }
 
 .login-avatar-preview {

@@ -59,19 +59,15 @@ export default function usePersistence() {
   const savePrefsNow = () => {
     const s = useAppStore.getState()
     const id = getActiveUserId()
-    if (id) {
-      saveUserPreferences(id, {
-        theme: s.theme, sidebarCollapsed: s.sidebarCollapsed, dock: s.dock,
-      }).catch(() => {})
-    } else {
-      mirrorPanelsToLocalStorageSync(s.panels)
-      localforage.setItem(GUEST_STATE_KEY, {
-        theme: s.theme,
-        sidebarCollapsed: s.sidebarCollapsed,
-        dock: s.dock,
-        panels: s.panels,
-      }).catch(() => {})
-    }
+    s.reportSaving()
+    const write = id
+      ? saveUserPreferences(id, { theme: s.theme, sidebarCollapsed: s.sidebarCollapsed, dock: s.dock })
+      : (mirrorPanelsToLocalStorageSync(s.panels),
+         localforage.setItem(GUEST_STATE_KEY, {
+           theme: s.theme, sidebarCollapsed: s.sidebarCollapsed, dock: s.dock, panels: s.panels,
+         }))
+    write.then(() => useAppStore.getState().reportSaved())
+      .catch(() => useAppStore.getState().reportSaveError())
   }
 
   // ── Restore session on mount ──────────────────────────────────────────────
@@ -147,12 +143,16 @@ export default function usePersistence() {
     // survives an unload before the debounce timer (or its async localforage
     // write) gets to run.
     if (!getActiveUserId()) mirrorPanelsToLocalStorageSync(panels)
+    useAppStore.getState().reportSaving()
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
       const s = useAppStore.getState()
       const id = getActiveUserId()
-      if (id) saveUserLayout(id, s.panels).catch(() => {})
-      else savePrefsNow() // guest state is one blob; keep panels in sync with it too
+      if (id) {
+        saveUserLayout(id, s.panels)
+          .then(() => useAppStore.getState().reportSaved())
+          .catch(() => useAppStore.getState().reportSaveError())
+      } else savePrefsNow() // guest state is one blob; keep panels in sync with it too
     }, SAVE_DEBOUNCE_MS)
     return () => clearTimeout(saveTimer.current)
   }, [panels])
@@ -168,8 +168,11 @@ export default function usePersistence() {
       clearTimeout(saveTimer.current)
       const s = useAppStore.getState()
       const id = getActiveUserId()
-      if (id) saveUserLayout(id, s.panels).catch(() => {})
-      else savePrefsNow()
+      if (id) {
+        saveUserLayout(id, s.panels)
+          .then(() => useAppStore.getState().reportSaved())
+          .catch(() => useAppStore.getState().reportSaveError())
+      } else savePrefsNow()
     }
     const flushIfHidden = () => { if (document.visibilityState === 'hidden') flush() }
     window.addEventListener('pagehide', flush)

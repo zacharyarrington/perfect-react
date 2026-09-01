@@ -23,6 +23,7 @@
 
 import localforage from 'localforage'
 import useDashboardStore from './useDashboardStore'
+import useAppStore from '../store/useAppStore'
 
 const DASHBOARDS_KEY = 'appshell_dashboards'
 const DASHBOARDS_SYNC_KEY = 'appshell_dashboards_sync' // localStorage durability mirror
@@ -73,6 +74,12 @@ function saveNow(savedAt) {
   return writeDashboards(dashboards, savedAt)
 }
 
+function reportedSave(savedAt) {
+  return saveNow(savedAt)
+    .then(() => useAppStore.getState().reportSaved())
+    .catch(() => useAppStore.getState().reportSaveError())
+}
+
 function scheduleSave() {
   // Mirror synchronously right away, stamped with the moment of the change
   // (not of the eventual write) — cheap, and it's the copy that survives an
@@ -80,8 +87,9 @@ function scheduleSave() {
   // run. The debounced call below writes the same stamp to localforage.
   const savedAt = Date.now()
   mirrorToLocalStorageSync(useDashboardStore.getState().dashboards, savedAt)
+  useAppStore.getState().reportSaving()
   clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => { saveNow(savedAt).catch(() => {}) }, SAVE_DEBOUNCE_MS)
+  saveTimer = setTimeout(() => { reportedSave(savedAt) }, SAVE_DEBOUNCE_MS)
 }
 
 /** Loads dashboards from storage (or seeds a default one) and wires up auto-save. Call once near the app root. */
@@ -124,7 +132,7 @@ export async function initDashboardStorage() {
 
   useDashboardStore.subscribe((s) => s.dashboards, scheduleSave)
 
-  const flush = () => { clearTimeout(saveTimer); saveNow().catch(() => {}) }
+  const flush = () => { clearTimeout(saveTimer); reportedSave() }
   window.addEventListener('pagehide', flush)
   // visibilitychange fires when a tab is backgrounded/closed and — unlike
   // pagehide — well before any document teardown, so async work it starts
