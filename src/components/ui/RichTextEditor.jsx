@@ -12,16 +12,19 @@
 // components/forms/Field.jsx.
 //
 // Extensions loaded: StarterKit (bold, italic, strike, headings, bullet/
-// ordered lists, blockquote, code, code block, horizontal rule, undo/redo)
-// plus Link and Placeholder. Add more by importing the extension and
-// pushing it into the `extensions` array below — every Tiptap extension
-// works the same way, so this is the entire integration surface for
-// growing the editor's feature set later (tables, images, mentions, etc.).
+// ordered lists, blockquote, code, code block, horizontal rule, undo/redo,
+// AND link — Tiptap 3's StarterKit bundles Link itself, unlike Tiptap 2;
+// configure it via StarterKit.configure({ link: {...} }) rather than adding
+// a separate Link extension, which Tiptap logs as a duplicate-extension
+// warning and silently lets one instance shadow the other) plus Placeholder.
+// Add more by importing another extension and pushing it into the
+// `extensions` array below — every Tiptap extension works the same way, so
+// that array is the entire integration surface for growing the editor's
+// feature set later (tables, images, mentions, etc.).
 
 import { useEffect } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import {
   IconBold, IconItalic, IconStrikethrough, IconCode, IconBlockquote,
@@ -124,8 +127,7 @@ export default function RichTextEditor({
 }) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Link.configure({ openOnClick: false, autolink: true }),
+      StarterKit.configure({ link: { openOnClick: false, autolink: true } }),
       Placeholder.configure({ placeholder }),
     ],
     content: value || '',

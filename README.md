@@ -15,7 +15,7 @@ Extracted from the ReadyMapGo UI system: the glassmorphism design language, drag
 - **mapbox-gl** — map module (lazy-loaded; needs a free token)
 - **recharts** — chart components (lazy-loaded)
 - **papaparse** — CSV import for data sources
-- **@tiptap/react** (+ starter-kit, link, placeholder) — rich text editor (`RichTextEditor` / `Field.RichText`)
+- **@tiptap/react** (+ starter-kit, placeholder) — rich text editor (`RichTextEditor` / `Field.RichText`)
 - **@tabler/icons-react** — icons
 
 ```bash
@@ -83,7 +83,7 @@ Routing, the sidebar link, permission gating, and the top-bar title all update a
 
 ## How to: add a floating panel
 
-1. Create `src/panels/MyPanel.jsx` (copy `NotesPanel.jsx`) — render your content inside `<FloatingPanel panelKey="mypanel" …>`.
+1. Create `src/panels/MyPanel.jsx` (copy `SettingsPanel.jsx` for a simple starting point, or `NotesPanel.jsx` if you want a multi-item/CRUD reference) — render your content inside `<FloatingPanel panelKey="mypanel" …>`.
 2. Register it in `src/config/panels.config.jsx`:
 
 ```jsx
@@ -241,9 +241,23 @@ const [html, setHtml] = useState('<p>Hello</p>')
 <Field.RichText label="Description" {...form.field('description')} />
 ```
 
-Tiptap-backed (`@tiptap/react` + `starter-kit`/`link`/`placeholder`), with a small fixed toolbar (bold/italic/strike/inline code, H1/H2, bullet/numbered lists, blockquote, link, undo/redo). Controlled — `value` is an HTML string in, `onChange` hands you back an HTML string, same contract as `Field.Textarea`'s plain-string value, so it drops into `useForm` with no special-casing. See the UI Kit's **Rich Text** tab for a live demo with the HTML output visible alongside it.
+Tiptap-backed (`@tiptap/react` + `starter-kit`/`placeholder` — StarterKit bundles its own Link extension in Tiptap 3, so there's no separate `@tiptap/extension-link` dependency), with a small fixed toolbar (bold/italic/strike/inline code, H1/H2, bullet/numbered lists, blockquote, link, undo/redo). Controlled — `value` is an HTML string in, `onChange` hands you back an HTML string, same contract as `Field.Textarea`'s plain-string value, so it drops into `useForm` with no special-casing. See the UI Kit's **Rich Text** tab for a live demo with the HTML output visible alongside it.
 
 Grow the toolbar by importing another [Tiptap extension](https://tiptap.dev/docs/editor/extensions/overview) and adding it to the `extensions` array in `src/components/ui/RichTextEditor.jsx` — every extension plugs in the same way, so that array is the entire surface for adding tables, images, mentions, etc. later.
+
+## How to: the Notes panel
+
+The built-in **Notes** panel (`src/panels/NotesPanel.jsx`) holds multiple rich-text notes per user (guests share one slot), not just a single scratchpad:
+
+- **Multiple notes** — a searchable list (title/content match) with a **+** to create a new one.
+- **Rich text** — each note is a `RichTextEditor`, not plain text; the note's title auto-derives from its first line of content unless you type your own into the title field.
+- **Pin** — pinned notes sort to the top of the list, above everything else by recency.
+- **Master-detail, not split-pane** — the panel always shows either the list or one note's editor, never both side by side, so it stays usable at its smallest resizable width (220px) instead of only working once someone happens to widen it. The back arrow returns to the list.
+- **Autosave** — debounced, with the same localStorage durability mirror every other persistence pipeline in this app uses (`src/panels/notesStore.js`), so a quick reload right after typing doesn't lose the change.
+
+If you had notes saved under the old single-scratchpad version, they're folded in automatically as your first note the next time the panel loads — nothing to migrate by hand.
+
+Use `notesStore.js` as a reference if you're building your own multi-item, per-user, rich-text-backed panel — it's the fullest example of that shape in this template (list + CRUD + pin + debounced autosave + durability mirror), more complete than the single-value pattern in `usePersistence.js`.
 
 ## How to: command palette
 
